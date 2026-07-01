@@ -15,7 +15,7 @@ export default function Dashboard() {
           clearInterval(timer);
           return 0;
         }
-        return prev - 1; // Properly ticking backward now
+        return prev - 1;
       });
     }, 1000);
 
@@ -78,17 +78,43 @@ export default function Dashboard() {
         .clip-bottom-blade {
           clip-path: polygon(3% 0%, 80% 12%, 81% 38%, 100% 64%, 79% 78%, 81% 100%, 0% 86%);
         }
+
+        /* Stylized sharp diagonal frame for Area A Persona-style cut-in */
+        .clip-anime-frame {
+          clip-path: polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%);
+        }
       `}</style>
 
       {/* High-Contrast Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-br from-black via-[#141414] to-black z-0" />
       <div className="absolute -top-40 -right-20 w-8/12 h-[120%] bg-red-700/10 transform rotate-12 origin-top-right pointer-events-none z-0" />
 
+      {/* AREA A: PERSONA STYLE ANIME VIDEO CUT-IN (Only visible on Workout screen) */}
+      {activeScreen === 'workout' && (
+        <div style={{ animation: 'p5-view-entrance 0.3s ease-out forwards' }} className="absolute bottom-0 right-0 w-[46%] h-[62%] z-10 pointer-events-none hidden lg:block">
+          <div className="relative w-full h-full overflow-hidden clip-anime-frame bg-neutral-900 border-l-4 border-black">
+            <div className="absolute top-0 left-0 w-full h-full bg-red-600/20 transform -skew-x-12 origin-top-left z-0" />
+            
+            <video 
+              src="/WhatsApp Video 2026-06-29 at 9.06.45 PM.mp4" 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              className="absolute inset-0 w-full h-full object-cover object-center mix-blend-lighten z-10"
+            />
+            
+            <div className="absolute left-0 top-0 bottom-0 w-2 bg-white transform skew-x-12 z-20 shadow-[4px_0_15px_rgba(255,255,255,0.4)]" />
+            <div className="absolute left-6 top-0 bottom-0 w-1 bg-black transform skew-x-12 z-20" />
+          </div>
+        </div>
+      )}
+
       {/* Main Structural Framework */}
-      <div className="relative max-w-7xl mx-auto h-screen grid grid-cols-1 lg:grid-cols-12 p-4 md:p-12 z-10 items-center gap-8">
+      <div className="relative max-w-7xl mx-auto h-screen grid grid-cols-1 lg:grid-cols-12 p-4 md:p-12 z-20 items-start gap-6 pt-10 md:pt-16">
         
-        {/* NAV CONTROLLER PANEL */}
-        <div className="lg:col-span-5 flex flex-col gap-4 justify-center z-20">
+        {/* NAV CONTROLLER PANEL (Shifted further to the left corner away from content) */}
+        <div className="lg:col-span-4 flex flex-col gap-4 justify-start z-30 transform lg:-translate-x-14 lg:-translate-y-4">
           
           <div className="bg-red-600 text-black font-black text-2xl md:text-3xl px-6 py-2 tracking-tighter uppercase inline-block -rotate-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-max mb-6">
             SYSTEM // INTERFACE
@@ -97,11 +123,11 @@ export default function Dashboard() {
           {/* Today's Goals Control */}
           <button 
             onClick={() => setActiveScreen('goals')}
-            className="group relative text-left transform -skew-x-12 -rotate-1 transition-all duration-150 active:scale-95 w-full max-w-sm"
+            className="group relative text-left transform -skew-x-12 -rotate-1 transition-all duration-150 active:scale-95 w-full max-w-xs"
           >
             <div className={`absolute inset-0 bg-red-600 translate-x-1 translate-y-1 transition-transform ${activeScreen === 'goals' ? 'translate-x-2 translate-y-2' : 'group-hover:translate-x-2 group-hover:translate-y-2'}`} />
-            <div className={`relative font-black text-lg md:text-xl px-6 py-4 uppercase tracking-wide border-2 transition-all ${activeScreen === 'goals' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
-              <span className="text-red-600 mr-4 font-mono text-xs">01</span>
+            <div className={`relative font-black text-base md:text-lg px-5 py-3.5 uppercase tracking-wide border-2 transition-all ${activeScreen === 'goals' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
+              <span className="text-red-600 mr-3 font-mono text-xs">01</span>
               Today's Goals
             </div>
           </button>
@@ -109,11 +135,11 @@ export default function Dashboard() {
           {/* Initial Task Control */}
           <button 
             onClick={() => setActiveScreen('initial')}
-            className="group relative text-left transform -skew-x-12 rotate-2 transition-all duration-150 active:scale-95 w-full max-w-sm"
+            className="group relative text-left transform -skew-x-12 rotate-2 transition-all duration-150 active:scale-95 w-full max-w-xs"
           >
             <div className={`absolute inset-0 bg-red-600 translate-x-1 translate-y-1 transition-transform ${activeScreen === 'initial' ? 'translate-x-2 translate-y-2' : 'group-hover:translate-x-2 group-hover:translate-y-2'}`} />
-            <div className={`relative font-black text-lg md:text-xl px-6 py-4 uppercase tracking-wide border-2 transition-all ${activeScreen === 'initial' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
-              <span className="text-red-600 mr-4 font-mono text-xs">02</span>
+            <div className={`relative font-black text-base md:text-lg px-5 py-3.5 uppercase tracking-wide border-2 transition-all ${activeScreen === 'initial' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
+              <span className="text-red-600 mr-3 font-mono text-xs">02</span>
               Initial Task
             </div>
           </button>
@@ -121,11 +147,11 @@ export default function Dashboard() {
           {/* Start Workout Control */}
           <button 
             onClick={() => setActiveScreen('workout')}
-            className="group relative text-left transform -skew-x-12 -rotate-2 transition-all duration-150 active:scale-95 w-full max-w-sm"
+            className="group relative text-left transform -skew-x-12 -rotate-2 transition-all duration-150 active:scale-95 w-full max-w-xs"
           >
             <div className={`absolute inset-0 bg-red-600 translate-x-1 translate-y-1 transition-transform ${activeScreen === 'workout' ? 'translate-x-2 translate-y-2' : 'group-hover:translate-x-2 group-hover:translate-y-2'}`} />
-            <div className={`relative font-black text-lg md:text-xl px-6 py-4 uppercase tracking-wide border-2 transition-all ${activeScreen === 'workout' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
-              <span className="text-red-600 mr-4 font-mono text-xs">03</span>
+            <div className={`relative font-black text-base md:text-lg px-5 py-3.5 uppercase tracking-wide border-2 transition-all ${activeScreen === 'workout' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
+              <span className="text-red-600 mr-3 font-mono text-xs">03</span>
               Start Workout
             </div>
           </button>
@@ -133,11 +159,11 @@ export default function Dashboard() {
           {/* Today's Schedule Control */}
           <button 
             onClick={() => setActiveScreen('schedule')}
-            className="group relative text-left transform -skew-x-12 rotate-1 transition-all duration-150 active:scale-95 w-full max-w-sm"
+            className="group relative text-left transform -skew-x-12 rotate-1 transition-all duration-150 active:scale-95 w-full max-w-xs"
           >
             <div className={`absolute inset-0 bg-red-600 translate-x-1 translate-y-1 transition-transform ${activeScreen === 'schedule' ? 'translate-x-2 translate-y-2' : 'group-hover:translate-x-2 group-hover:translate-y-2'}`} />
-            <div className={`relative font-black text-lg md:text-xl px-6 py-4 uppercase tracking-wide border-2 transition-all ${activeScreen === 'schedule' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
-              <span className="text-red-600 mr-4 font-mono text-xs">04</span>
+            <div className={`relative font-black text-base md:text-lg px-5 py-3.5 uppercase tracking-wide border-2 transition-all ${activeScreen === 'schedule' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
+              <span className="text-red-600 mr-3 font-mono text-xs">04</span>
               Today's Schedule
             </div>
           </button>
@@ -145,10 +171,10 @@ export default function Dashboard() {
         </div>
 
         {/* WORKSPACE AREA & OPERATIONAL SHARDS */}
-        <div className="lg:col-span-7 h-full flex flex-col justify-between py-4 md:py-8 relative z-10">
+        <div className="lg:col-span-8 h-full flex flex-col justify-start pb-4 relative z-20">
           
-          {/* FUNCTIONAL MONITOR AREA */}
-          <div className="flex-1 flex items-center justify-center p-2">
+          {/* FUNCTIONAL MONITOR AREA (Lifted upward to preserve scannability) */}
+          <div className="flex-initial flex items-center justify-center p-2 mb-2 transform lg:-translate-y-12 xl:-translate-y-16">
             
             {activeScreen === 'goals' && (
               <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-red-600 transform -skew-x-6 p-6 w-full max-w-md shadow-[6px_6px_0px_0px_rgba(220,38,38,0.3)]">
@@ -170,7 +196,7 @@ export default function Dashboard() {
             )}
 
             {activeScreen === 'workout' && (
-              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-white transform -skew-x-6 p-6 w-full max-w-xl text-left shadow-[6px_6px_0px_0px_#fff] grid grid-cols-1 md:grid-cols-12 gap-6">
+              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-white transform -skew-x-6 p-6 w-full max-w-xl text-left shadow-[6px_6px_0px_0px_#fff] grid grid-cols-1 md:grid-cols-12 gap-6 bg-black/95 backdrop-blur-sm">
                 
                 {/* Countdown Wing */}
                 <div className="md:col-span-5 flex flex-col justify-center items-center border-b-2 md:border-b-0 md:border-r-2 border-neutral-800 pb-4 md:pb-0 md:pr-4">
@@ -183,7 +209,7 @@ export default function Dashboard() {
                   </button>
                 </div>
 
-                {/* Workout Plan Layout Area (Can customize later) */}
+                {/* Workout Plan Layout Area */}
                 <div className="md:col-span-7 pl-0 md:pl-2 flex flex-col justify-between">
                   <div>
                     <div className="text-red-500 font-mono text-xs tracking-widest uppercase mb-2">// COMBAT CONDITIONING PLAN</div>
@@ -224,11 +250,11 @@ export default function Dashboard() {
 
           </div>
 
-          {/* TAILED HORIZONTAL SHARD ENGINE */}
-          <div className="relative w-full max-w-lg mx-auto lg:mr-0 flex flex-col gap-2 mt-4 items-end">
+          {/* TAILED HORIZONTAL SHARD ENGINE (Shifted slightly right and down to prevent overlapping the buttons or video) */}
+          <div className="relative w-full max-w-sm mx-auto lg:mx-0 flex flex-col gap-2 mt-2 items-start transform lg:-translate-x-10 lg:translate-y-4 z-30">
             
             {/* TOP SHARD WITH DIRECTIONAL TAIL POINT */}
-            <div className="relative w-full h-16 transform origin-right">
+            <div className="relative w-full h-14 transform origin-right">
               <div className="absolute inset-0 bg-black clip-top-blade translate-x-1.5 translate-y-1 pointer-events-none" />
               
               <div 
@@ -252,7 +278,7 @@ export default function Dashboard() {
             </div>
 
             {/* LOWER SHARD WITH LOWER DIRECTIONAL TAIL HOOK */}
-            <div className="relative w-full h-16 transform origin-right -mt-1">
+            <div className="relative w-full h-14 transform origin-right -mt-1">
               <div className="absolute inset-0 bg-red-600 clip-bottom-blade translate-x-0.5 translate-y-0.5 pointer-events-none" />
               
               <div 
@@ -264,7 +290,7 @@ export default function Dashboard() {
                 }}
               >
                 <p 
-                  className="text-white font-mono font-black text-[11px] md:text-xs tracking-tight italic uppercase"
+                  className="text-white font-mono font-black text-[10px] md:text-xs tracking-tight italic uppercase"
                   style={{
                     opacity: 0,
                     animation: 'p5-text-slide 0.3s ease-out 0.5s forwards'
