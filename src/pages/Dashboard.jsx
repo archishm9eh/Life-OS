@@ -34,12 +34,12 @@ export default function Dashboard() {
       subText: "ELIMINATE COGNITIVE OBJECTIVES BEFORE MIDNIGHT."
     },
     initial: {
-      prompt: "VITAL SIGNALS STABLE.",
-      subText: "DRINK WATER & CLEAR THE SYSTEM CORE IMMEDIATELY."
+      prompt: "",
+      subText: ""
     },
     workout: {
-      prompt: "CONDITIONING MODE ACTIVE.",
-      subText: "BREAK TRAINING LIMITS FROM THIS POINT FORWARD."
+      prompt: "There are no shortcuts to finding out what it truly means to be strong",
+      subText: "Lace up your shoes and give it everything you've got today—let's push past our limits together!"
     },
     schedule: {
       prompt: "TIMELINE ROUTE ACQUIRED.",
@@ -57,6 +57,13 @@ export default function Dashboard() {
           30% { transform: scaleX(1.1) skewX(-10deg); background-color: #000000; opacity: 1; }
           60% { transform: scaleX(0.95) skewX(-10deg); background-color: #dc2626; }
           100% { transform: scaleX(1) skewX(-10deg); }
+        }
+
+        @keyframes p5-large-blade-extend {
+          0% { transform: scaleX(0); background-color: #000000; opacity: 0; }
+          30% { transform: scaleX(1.1); background-color: #000000; opacity: 1; }
+          60% { transform: scaleX(0.95); background-color: #dc2626; }
+          100% { transform: scaleX(1); }
         }
 
         @keyframes p5-text-slide {
@@ -83,29 +90,59 @@ export default function Dashboard() {
         .clip-anime-frame {
           clip-path: polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%);
         }
+
+        /* Scaling sharp blade layout for large paragraph structures */
+        .clip-p5-large-blade {
+          clip-path: polygon(0% 6%, 84% 0%, 86% 28%, 100% 50%, 86% 72%, 84% 100%, 0% 94%);
+        }
       `}</style>
 
       {/* High-Contrast Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-br from-black via-[#141414] to-black z-0" />
       <div className="absolute -top-40 -right-20 w-8/12 h-[120%] bg-red-700/10 transform rotate-12 origin-top-right pointer-events-none z-0" />
 
-      {/* AREA A: PERSONA STYLE ANIME VIDEO CUT-IN (Only visible on Workout screen) */}
-      {activeScreen === 'workout' && (
-        <div style={{ animation: 'p5-view-entrance 0.3s ease-out forwards' }} className="absolute bottom-0 right-0 w-[46%] h-[62%] z-10 pointer-events-none hidden lg:block">
-          <div className="relative w-full h-full overflow-hidden clip-anime-frame bg-neutral-900 border-l-4 border-black">
-            <div className="absolute top-0 left-0 w-full h-full bg-red-600/20 transform -skew-x-12 origin-top-left z-0" />
+      {/* AREA A: PERSONA STYLE ANIME VIDEO CUT-IN (Initial Task Screen) */}
+      {activeScreen === 'initial' && (
+        <div style={{ animation: 'p5-view-entrance 0.3s ease-out forwards' }} className="absolute bottom-0 right-0 w-[55%] h-[85%] z-10 pointer-events-none hidden lg:block">
+          <div className="relative w-full h-full flex justify-end items-end overflow-hidden">
             
+            {/* Background geometric shard style effect layer */}
+            <div className="absolute inset-0 clip-anime-frame bg-neutral-900/40 border-l-4 border-black z-0">
+              <div className="absolute top-0 left-0 w-full h-full bg-red-600/10 transform -skew-x-12 origin-top-left" />
+            </div>
+            
+            {/* Fully visible uncropped video frame */}
+            <video 
+              src="/WhatsApp Video 2026-07-02 at 9.21.36 AM.mp4" 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              className="relative w-full h-full object-contain object-right-bottom mix-blend-lighten z-10"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* AREA A: PERSONA STYLE ANIME VIDEO CUT-IN (Workout Screen) */}
+      {activeScreen === 'workout' && (
+        <div style={{ animation: 'p5-view-entrance 0.3s ease-out forwards' }} className="absolute bottom-0 right-0 w-[50%] h-[75%] z-10 pointer-events-none hidden lg:block">
+          <div className="relative w-full h-full flex justify-end items-end overflow-hidden">
+            
+            {/* Background geometric shard style effect layer */}
+            <div className="absolute inset-0 clip-anime-frame bg-neutral-900/40 border-l-4 border-black z-0">
+              <div className="absolute top-0 left-0 w-full h-full bg-red-600/10 transform -skew-x-12 origin-top-left" />
+            </div>
+            
+            {/* Fully visible uncropped video frame */}
             <video 
               src="/WhatsApp Video 2026-06-29 at 9.06.45 PM.mp4" 
               autoPlay 
               loop 
               muted 
               playsInline 
-              className="absolute inset-0 w-full h-full object-cover object-center mix-blend-lighten z-10"
+              className="relative w-full h-full object-contain object-right-bottom mix-blend-lighten z-10"
             />
-            
-            <div className="absolute left-0 top-0 bottom-0 w-2 bg-white transform skew-x-12 z-20 shadow-[4px_0_15px_rgba(255,255,255,0.4)]" />
-            <div className="absolute left-6 top-0 bottom-0 w-1 bg-black transform skew-x-12 z-20" />
           </div>
         </div>
       )}
@@ -113,7 +150,7 @@ export default function Dashboard() {
       {/* Main Structural Framework */}
       <div className="relative max-w-7xl mx-auto h-screen grid grid-cols-1 lg:grid-cols-12 p-4 md:p-12 z-20 items-start gap-6 pt-10 md:pt-16">
         
-        {/* NAV CONTROLLER PANEL (Shifted further to the left corner away from content) */}
+        {/* NAV CONTROLLER PANEL */}
         <div className="lg:col-span-4 flex flex-col gap-4 justify-start z-30 transform lg:-translate-x-14 lg:-translate-y-4">
           
           <div className="bg-red-600 text-black font-black text-2xl md:text-3xl px-6 py-2 tracking-tighter uppercase inline-block -rotate-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-max mb-6">
@@ -173,7 +210,7 @@ export default function Dashboard() {
         {/* WORKSPACE AREA & OPERATIONAL SHARDS */}
         <div className="lg:col-span-8 h-full flex flex-col justify-start pb-4 relative z-20">
           
-          {/* FUNCTIONAL MONITOR AREA (Lifted upward to preserve scannability) */}
+          {/* FUNCTIONAL MONITOR AREA */}
           <div className="flex-initial flex items-center justify-center p-2 mb-2 transform lg:-translate-y-12 xl:-translate-y-16">
             
             {activeScreen === 'goals' && (
@@ -187,11 +224,43 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* INITIAL TASK SCREEN: Synchronized Dynamic Shard Dialogue Box Layout */}
             {activeScreen === 'initial' && (
-              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-white text-black border-4 border-black transform -skew-x-3 p-6 w-full max-w-md shadow-[6px_6px_0px_0px_#000]">
-                <div className="bg-red-600 text-white font-mono text-xs px-2 py-0.5 tracking-widest uppercase inline-block mb-3 font-bold">CRITICAL OPERATION</div>
-                <h3 className="font-black text-2xl md:text-3xl uppercase tracking-tighter mb-1">DRINK WATER, GET FRESH</h3>
-                <p className="font-medium text-sm text-neutral-700 leading-tight">This operational parameters check-in is static and non-negotiable. Maintain systemic physical balance prior to loading high-stress workloads.</p>
+              <div className="relative w-full max-w-xl lg:translate-y-10">
+                {/* Secondary Offset Shadow Layers */}
+                <div 
+                  className="absolute inset-0 bg-black clip-p5-large-blade translate-x-3 translate-y-3 pointer-events-none"
+                  style={{
+                    transformOrigin: 'right center',
+                    animation: 'p5-large-blade-extend 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards'
+                  }}
+                />
+                <div 
+                  className="absolute inset-0 bg-red-600 clip-p5-large-blade translate-x-1.5 translate-y-1.5 pointer-events-none"
+                  style={{
+                    transformOrigin: 'right center',
+                    animation: 'p5-large-blade-extend 0.48s cubic-bezier(0.19, 1, 0.22, 1) forwards'
+                  }}
+                />
+                
+                {/* Main Shard Body Block */}
+                <div 
+                  className="relative bg-white text-black border border-black clip-p5-large-blade p-6 pt-7 pb-8 pl-8 pr-24"
+                  style={{
+                    transformOrigin: 'right center',
+                    animation: 'p5-large-blade-extend 0.45s cubic-bezier(0.19, 1, 0.22, 1) forwards'
+                  }}
+                >
+                  <p 
+                    className="font-black text-xs md:text-sm uppercase tracking-tight leading-relaxed italic text-black font-sans select-text"
+                    style={{
+                      opacity: 0,
+                      animation: 'p5-text-slide 0.3s ease-out 0.45s forwards'
+                    }}
+                  >
+                    "Your dull, dehydrated skin and messy, sluggish state are a complete eyesore, making you look utterly pathetic before the day has even begun. Go drink some water and wash that exhaustion off your face right now, unless you are content with letting everyone else outshine you while you rot like a total nobody."
+                  </p>
+                </div>
               </div>
             )}
 
@@ -250,68 +319,70 @@ export default function Dashboard() {
 
           </div>
 
-          {/* TAILED HORIZONTAL SHARD ENGINE (Shifted slightly right and down to prevent overlapping the buttons or video) */}
-          <div className="relative w-full max-w-sm mx-auto lg:mx-0 flex flex-col gap-2 mt-2 items-start transform lg:-translate-x-10 lg:translate-y-4 z-30">
-            
-            {/* TOP SHARD WITH DIRECTIONAL TAIL POINT */}
-            <div className="relative w-full h-14 transform origin-right">
-              <div className="absolute inset-0 bg-black clip-top-blade translate-x-1.5 translate-y-1 pointer-events-none" />
+          {/* TAILED HORIZONTAL SHARD ENGINE (Hides on 'initial' screen as it's shifted fully to the workspace area) */}
+          {activeScreen !== 'initial' && (
+            <div className="relative w-full max-w-md mx-auto lg:mx-0 flex flex-col gap-3 mt-2 items-start transform lg:-translate-x-10 lg:translate-y-4 z-30">
               
-              <div 
-                key={`top-${activeScreen}`} 
-                className="absolute inset-0 bg-white border-2 border-black clip-top-blade flex items-center pl-6 pr-16"
-                style={{
-                  transformOrigin: 'right center',
-                  animation: 'p5-blade-extend 0.45s cubic-bezier(0.19, 1, 0.22, 1) forwards'
-                }}
-              >
-                <span 
-                  className="text-black font-black font-mono text-xs md:text-sm tracking-tighter uppercase"
-                  style={{
-                    opacity: 0,
-                    animation: 'p5-text-slide 0.3s ease-out 0.45s forwards'
-                  }}
-                >
-                  {systemDialogue[activeScreen].prompt}
-                </span>
-              </div>
-            </div>
-
-            {/* LOWER SHARD WITH LOWER DIRECTIONAL TAIL HOOK */}
-            <div className="relative w-full h-14 transform origin-right -mt-1">
-              <div className="absolute inset-0 bg-red-600 clip-bottom-blade translate-x-0.5 translate-y-0.5 pointer-events-none" />
-              
-              <div 
-                key={`bottom-${activeScreen}`} 
-                className="absolute inset-0 bg-black border border-white clip-bottom-blade flex items-center pl-6 pr-16 justify-between"
-                style={{
-                  transformOrigin: 'right center',
-                  animation: 'p5-blade-extend 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards'
-                }}
-              >
-                <p 
-                  className="text-white font-mono font-black text-[10px] md:text-xs tracking-tight italic uppercase"
-                  style={{
-                    opacity: 0,
-                    animation: 'p5-text-slide 0.3s ease-out 0.5s forwards'
-                  }}
-                >
-                  "{systemDialogue[activeScreen].subText}"
-                </p>
+              {/* TOP SHARD WITH DIRECTIONAL TAIL POINT */}
+              <div className="relative w-full min-h-[3.5rem] transform origin-right">
+                <div className="absolute inset-0 bg-black clip-top-blade translate-x-1.5 translate-y-1 pointer-events-none" />
                 
-                <span 
-                  className="text-red-500 font-black text-sm animate-pulse font-mono hidden md:inline"
+                <div 
+                  key={`top-${activeScreen}`} 
+                  className="absolute inset-0 bg-white border-2 border-black clip-top-blade flex items-center pl-6 pr-16 py-2"
                   style={{
-                    opacity: 0,
-                    animation: 'p5-text-slide 0.3s ease-out 0.5s forwards'
+                    transformOrigin: 'right center',
+                    animation: 'p5-blade-extend 0.45s cubic-bezier(0.19, 1, 0.22, 1) forwards'
                   }}
                 >
-                  ►
-                </span>
+                  <span 
+                    className="text-black font-black font-mono text-xs md:text-sm tracking-tighter uppercase leading-tight"
+                    style={{
+                      opacity: 0,
+                      animation: 'p5-text-slide 0.3s ease-out 0.45s forwards'
+                    }}
+                  >
+                    {systemDialogue[activeScreen].prompt}
+                  </span>
+                </div>
               </div>
-            </div>
 
-          </div>
+              {/* LOWER SHARD WITH LOWER DIRECTIONAL TAIL HOOK */}
+              <div className="relative w-full min-h-[3.5rem] transform origin-right -mt-1">
+                <div className="absolute inset-0 bg-red-600 clip-bottom-blade translate-x-0.5 translate-y-0.5 pointer-events-none" />
+                
+                <div 
+                  key={`bottom-${activeScreen}`} 
+                  className="absolute inset-0 bg-black border border-white clip-bottom-blade flex items-center pl-6 pr-16 py-2 justify-between gap-4"
+                  style={{
+                    transformOrigin: 'right center',
+                    animation: 'p5-blade-extend 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards'
+                  }}
+                >
+                  <p 
+                    className="text-white font-mono font-black text-[10px] md:text-xs tracking-tight italic uppercase leading-tight"
+                    style={{
+                      opacity: 0,
+                      animation: 'p5-text-slide 0.3s ease-out 0.5s forwards'
+                    }}
+                  >
+                    "{systemDialogue[activeScreen].subText}"
+                  </p>
+                  
+                  <span 
+                    className="text-red-500 font-black text-sm animate-pulse font-mono hidden md:inline shrink-0"
+                    style={{
+                      opacity: 0,
+                      animation: 'p5-text-slide 0.3s ease-out 0.5s forwards'
+                    }}
+                  >
+                    ►
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          )}
 
         </div>
 
