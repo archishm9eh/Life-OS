@@ -2,10 +2,58 @@ import React, { useState, useEffect } from 'react';
 
 export default function Dashboard() {
   const [activeScreen, setActiveScreen] = useState('goals');
-  // Countdown initialized to 15 minutes (900 seconds)
   const [workoutSeconds, setWorkoutSeconds] = useState(900); 
 
-  // Fixed Tactical Countdown Engine
+  // --- CORE DATA & SYSTEM STATES ---
+  const [tomorrowGoals, setTomorrowGoals] = useState(['', '', '']);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+
+  // Primary Data States loaded from LocalStorage cache or fallback defaults
+  const [todayGoals, setTodayGoals] = useState(() => {
+    const saved = localStorage.getItem('p5_today_goals');
+    return saved ? JSON.parse(saved) : [
+      "Master React Complex State",
+      "Push Clean Core Architecture to GitHub",
+      "Deploy Initial Dashboard Matrix"
+    ];
+  });
+
+  const [todaySchedule, setTodaySchedule] = useState(() => {
+    const saved = localStorage.getItem('p5_today_schedule');
+    return saved ? JSON.parse(saved) : [
+      { time: "07:00 AM", task: "Wake Matrix Initialization" },
+      { time: "09:00 AM", task: "Core Development Operations" },
+      { time: "04:00 PM", task: "Data Structures & Algo Drill" },
+      { time: "09:00 PM", task: "Combat Workout Loop" }
+    ];
+  });
+
+  // --- AUTOMATED DAY-TURNOVER HANDLING ENGINE ---
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const savedDate = localStorage.getItem('p5_dashboard_last_date');
+
+    // Automatically shift tomorrow's mapped out strategy into today's deck on new calendar date
+    if (savedDate && savedDate !== todayStr) {
+      const pendingGoals = localStorage.getItem('p5_tomorrow_goals');
+      const pendingSchedule = localStorage.getItem('p5_tomorrow_schedule');
+
+      if (pendingGoals) {
+        const parsedGoals = JSON.parse(pendingGoals);
+        setTodayGoals(parsedGoals);
+        localStorage.setItem('p5_today_goals', JSON.stringify(parsedGoals));
+      }
+      if (pendingSchedule) {
+        const parsedSched = JSON.parse(pendingSchedule);
+        setTodaySchedule(parsedSched);
+        localStorage.setItem('p5_today_schedule', JSON.stringify(parsedSched));
+      }
+    }
+    localStorage.setItem('p5_dashboard_last_date', todayStr);
+  }, []);
+
+  // Tactical Countdown Engine
   useEffect(() => {
     if (activeScreen !== 'workout') return;
     
@@ -28,15 +76,98 @@ export default function Dashboard() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // --- GEMINI INTELLIGENT ROUTING & PROTOCOL ENGINE ---
+  const handleDeployNextDay = async (e) => {
+    e.preventDefault();
+    if (tomorrowGoals.some(g => g.trim() === '')) {
+      alert("INPUT REQUIRED: ENTER ALL THREE TARGET OBJECTIVES.");
+      return;
+    }
+
+    setIsLoadingAI(true);
+
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const tomorrowIndex = (new Date().getDay() + 1) % 7;
+    const tomorrowDayName = daysOfWeek[tomorrowIndex];
+    const isWeekend = tomorrowDayName === 'Saturday' || tomorrowDayName === 'Sunday';
+
+    // Programmatic routing parameters
+    const systemConstraints = `
+      - Tomorrow is ${tomorrowDayName}.
+      - Mon to Fri constraints: College from 9:00 AM to 5:00 PM with a Lunch Break between 1:00 PM and 2:00 PM. 
+      - Sat and Sun constraints: Off from college. Completely open and flexible hours.
+      - Distribute these 3 items smoothly into the schedule array matrix: 1. ${tomorrowGoals[0]} | 2. ${tomorrowGoals[1]} | 3. ${tomorrowGoals[2]}.
+    `;
+
+    let generatedSchedule = [];
+
+    if (geminiApiKey.trim() !== '') {
+      try {
+        const prompt = `You are a high-performance tactical planner. Generate a comprehensive daily timeline for tomorrow (${tomorrowDayName}) inside an app dashboard. 
+        Context details: ${systemConstraints}
+        Provide a chronological breakdown of the day starting from wake-up to bed time (4 to 6 data entries).
+        Return ONLY a clean JSON array of objects following exactly this schema format, with no markdown codeblock wraps or other conversational text:
+        [
+          {"time": "07:00 AM", "task": "Wake-up Routine"},
+          {"time": "09:00 AM", "task": "College Operations"},
+          ...
+        ]`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+
+        const data = await response.json();
+        const rawText = data.candidates[0].content.parts[0].text;
+        const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        generatedSchedule = JSON.parse(cleanJson);
+      } catch (err) {
+        console.warn("AI Endpoint configuration dropped. Running local layout scheduler backup...", err);
+        generatedSchedule = runLocalFallbackScheduler(isWeekend);
+      }
+    } else {
+      generatedSchedule = runLocalFallbackScheduler(isWeekend);
+    }
+
+    // Cache planned data sets for upcoming rotation trigger
+    localStorage.setItem('p5_tomorrow_goals', JSON.stringify(tomorrowGoals));
+    localStorage.setItem('p5_tomorrow_schedule', JSON.stringify(generatedSchedule));
+
+    setIsLoadingAI(false);
+    alert(`STRATEGY DEPLOYED: Protocols locked for tomorrow (${tomorrowDayName}). They will load automatically upon next-day turnover!`);
+    setActiveScreen('goals');
+  };
+
+  // Static rule-based backup algorithm matching college guidelines exactly
+  const runLocalFallbackScheduler = (isWeekend) => {
+    if (!isWeekend) {
+      return [
+        { time: "07:00 AM", task: `Initialization // Target Prep: ${tomorrowGoals[0].substring(0, 20)}...` },
+        { time: "09:00 AM", task: "COLLEGE CORE WINDOW // START HOURS" },
+        { time: "01:00 PM", task: "SYSTEM BUFFER // LUNCH BREAK PROTOCOL" },
+        { time: "05:00 PM", task: "COLLEGE OUTRUN TERMINATION" },
+        { time: "06:30 PM", task: `TACTICAL FOCUS // EXECUTE: ${tomorrowGoals[1].substring(0, 25)}...` },
+        { time: "09:00 PM", task: `NIGHT ENGINE // ASSIGNMENT: ${tomorrowGoals[2].substring(0, 25)}...` }
+      ];
+    } else {
+      return [
+        { time: "08:30 AM", task: "Weekend Recovery & Hydration Loop" },
+        { time: "10:00 AM", task: `WEEKEND DRIVE // ENGAGE: ${tomorrowGoals[0]}` },
+        { time: "02:00 PM", task: `STRATEGY OPERATION // FOCUS: ${tomorrowGoals[1]}` },
+        { time: "06:00 PM", task: `SECONDARY OBJECTIVE // COMPLETE: ${tomorrowGoals[2]}` },
+        { time: "10:00 PM", task: "System Hibernation Sequence" }
+      ];
+    }
+  };
+
   const systemDialogue = {
     goals: {
       prompt: "TARGETS LOCATED.",
       subText: "ELIMINATE COGNITIVE OBJECTIVES BEFORE MIDNIGHT."
     },
-    initial: {
-      prompt: "",
-      subText: ""
-    },
+    initial: { prompt: "", subText: "" },
     workout: {
       prompt: "There are no shortcuts to finding out what it truly means to be strong",
       subText: "Lace up your shoes and give it everything you've got today—let's push past our limits together!"
@@ -44,13 +175,16 @@ export default function Dashboard() {
     schedule: {
       prompt: "TIMELINE ROUTE ACQUIRED.",
       subText: "EXECUTE SEQUENCE CHRONOLOGICALLY PER PARAMETERS."
+    },
+    deploy: {
+      prompt: "STRATEGIC FORECAST INITIALIZED.",
+      subText: "SPECIFY OBJECTIVES AND DISTRIBUTE INTEL PATTERNS FOR TOMORROW."
     }
   };
 
   return (
     <div className="relative min-h-screen bg-[#0d0d0d] text-white font-sans overflow-hidden select-none">
       
-      {/* Precision Styles for the Jagged Shard Layout and Animations */}
       <style>{`
         @keyframes p5-blade-extend {
           0% { transform: scaleX(0) skewX(-10deg); background-color: #000000; opacity: 0; }
@@ -58,326 +192,231 @@ export default function Dashboard() {
           60% { transform: scaleX(0.95) skewX(-10deg); background-color: #dc2626; }
           100% { transform: scaleX(1) skewX(-10deg); }
         }
-
         @keyframes p5-large-blade-extend {
           0% { transform: scaleX(0); background-color: #000000; opacity: 0; }
           30% { transform: scaleX(1.1); background-color: #000000; opacity: 1; }
           60% { transform: scaleX(0.95); background-color: #dc2626; }
           100% { transform: scaleX(1); }
         }
-
         @keyframes p5-text-slide {
           0% { opacity: 0; transform: translateX(15px); }
           100% { opacity: 1; transform: translateX(0); }
         }
-
         @keyframes p5-view-entrance {
           0% { opacity: 0; transform: scale(0.96) rotate(-1deg); }
           100% { opacity: 1; transform: scale(1) rotate(0deg); }
         }
-
-        /* Top white shard: Sharp lightning indicator tail point at (100% 48%) */
-        .clip-top-blade {
-          clip-path: polygon(0% 18%, 82% 2%, 84% 24%, 100% 48%, 83% 62%, 85% 100%, 2% 88%);
-        }
-
-        /* Bottom black shard: Lower dramatic tail hook point at (100% 64%) */
-        .clip-bottom-blade {
-          clip-path: polygon(3% 0%, 80% 12%, 81% 38%, 100% 64%, 79% 78%, 81% 100%, 0% 86%);
-        }
-
-        /* Stylized sharp diagonal frame for Area A Persona-style cut-in */
-        .clip-anime-frame {
-          clip-path: polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%);
-        }
-
-        /* Scaling sharp blade layout for large paragraph structures */
-        .clip-p5-large-blade {
-          clip-path: polygon(0% 6%, 84% 0%, 86% 28%, 100% 50%, 86% 72%, 84% 100%, 0% 94%);
-        }
+        .clip-top-blade { clip-path: polygon(0% 18%, 82% 2%, 84% 24%, 100% 48%, 83% 62%, 85% 100%, 2% 88%); }
+        .clip-bottom-blade { clip-path: polygon(3% 0%, 80% 12%, 81% 38%, 100% 64%, 79% 78%, 81% 100%, 0% 86%); }
+        .clip-anime-frame { clip-path: polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%); }
+        .clip-p5-large-blade { clip-path: polygon(0% 6%, 84% 0%, 86% 28%, 100% 50%, 86% 72%, 84% 100%, 0% 94%); }
       `}</style>
 
-      {/* High-Contrast Background Elements */}
+      {/* High-Contrast Graphic Layout Elements */}
       <div className="absolute inset-0 bg-gradient-to-br from-black via-[#141414] to-black z-0" />
       <div className="absolute -top-40 -right-20 w-8/12 h-[120%] bg-red-700/10 transform rotate-12 origin-top-right pointer-events-none z-0" />
 
-      {/* AREA A: PERSONA STYLE ANIME VIDEO CUT-IN (Initial Task Screen) */}
+      {/* DYNAMIC BACKGROUND ANIME CUT-IN CARDS */}
       {activeScreen === 'initial' && (
         <div style={{ animation: 'p5-view-entrance 0.3s ease-out forwards' }} className="absolute bottom-0 right-0 w-[55%] h-[85%] z-10 pointer-events-none hidden lg:block">
           <div className="relative w-full h-full flex justify-end items-end overflow-hidden">
-            
-            {/* Background geometric shard style effect layer */}
             <div className="absolute inset-0 clip-anime-frame bg-neutral-900/40 border-l-4 border-black z-0">
               <div className="absolute top-0 left-0 w-full h-full bg-red-600/10 transform -skew-x-12 origin-top-left" />
             </div>
-            
-            {/* Fully visible uncropped video frame */}
-            <video 
-              src="/WhatsApp Video 2026-07-02 at 9.21.36 AM.mp4" 
-              autoPlay 
-              loop 
-              muted 
-              playsInline 
-              className="relative w-full h-full object-contain object-right-bottom mix-blend-lighten z-10"
-            />
+            <video src="/WhatsApp Video 2026-07-02 at 9.21.36 AM.mp4" autoPlay loop muted playsInline className="relative w-full h-full object-contain object-right-bottom mix-blend-lighten z-10" />
           </div>
         </div>
       )}
 
-      {/* AREA A: PERSONA STYLE ANIME VIDEO CUT-IN (Workout Screen) */}
       {activeScreen === 'workout' && (
         <div style={{ animation: 'p5-view-entrance 0.3s ease-out forwards' }} className="absolute bottom-0 right-0 w-[50%] h-[75%] z-10 pointer-events-none hidden lg:block">
           <div className="relative w-full h-full flex justify-end items-end overflow-hidden">
-            
-            {/* Background geometric shard style effect layer */}
             <div className="absolute inset-0 clip-anime-frame bg-neutral-900/40 border-l-4 border-black z-0">
               <div className="absolute top-0 left-0 w-full h-full bg-red-600/10 transform -skew-x-12 origin-top-left" />
             </div>
-            
-            {/* Fully visible uncropped video frame */}
-            <video 
-              src="/WhatsApp Video 2026-06-29 at 9.06.45 PM.mp4" 
-              autoPlay 
-              loop 
-              muted 
-              playsInline 
-              className="relative w-full h-full object-contain object-right-bottom mix-blend-lighten z-10"
-            />
+            <video src="/WhatsApp Video 2026-06-29 at 9.06.45 PM.mp4" autoPlay loop muted playsInline className="relative w-full h-full object-contain object-right-bottom mix-blend-lighten z-10" />
           </div>
         </div>
       )}
 
-      {/* Main Structural Framework */}
+      {/* Main Structural Grid Canvas */}
       <div className="relative max-w-7xl mx-auto h-screen grid grid-cols-1 lg:grid-cols-12 p-4 md:p-12 z-20 items-start gap-6 pt-10 md:pt-16">
         
         {/* NAV CONTROLLER PANEL */}
-        <div className="lg:col-span-4 flex flex-col gap-4 justify-start z-30 transform lg:-translate-x-14 lg:-translate-y-4">
+        <div className="lg:col-span-4 flex flex-col gap-3.5 justify-start z-30 transform lg:-translate-x-14 lg:-translate-y-4">
           
-          <div className="bg-red-600 text-black font-black text-2xl md:text-3xl px-6 py-2 tracking-tighter uppercase inline-block -rotate-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-max mb-6">
+          <div className="bg-red-600 text-black font-black text-2xl md:text-3xl px-6 py-2 tracking-tighter uppercase inline-block -rotate-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-max mb-4">
             SYSTEM // INTERFACE
           </div>
 
-          {/* Today's Goals Control */}
-          <button 
-            onClick={() => setActiveScreen('goals')}
-            className="group relative text-left transform -skew-x-12 -rotate-1 transition-all duration-150 active:scale-95 w-full max-w-xs"
-          >
-            <div className={`absolute inset-0 bg-red-600 translate-x-1 translate-y-1 transition-transform ${activeScreen === 'goals' ? 'translate-x-2 translate-y-2' : 'group-hover:translate-x-2 group-hover:translate-y-2'}`} />
-            <div className={`relative font-black text-base md:text-lg px-5 py-3.5 uppercase tracking-wide border-2 transition-all ${activeScreen === 'goals' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
-              <span className="text-red-600 mr-3 font-mono text-xs">01</span>
-              Today's Goals
-            </div>
-          </button>
+          {[
+            { id: 'goals', label: "Today's Goals", index: "01", rot: "-rotate-1" },
+            { id: 'initial', label: "Initial Task", index: "02", rot: "rotate-2" },
+            { id: 'workout', label: "Start Workout", index: "03", rot: "-rotate-2" },
+            { id: 'schedule', label: "Today's Schedule", index: "04", rot: "rotate-1" },
+            { id: 'deploy', label: "Deploy Next Day", index: "05", rot: "-rotate-1" }
+          ].map((btn) => (
+            <button 
+              key={btn.id}
+              onClick={() => setActiveScreen(btn.id)}
+              className={`group relative text-left transform -skew-x-12 ${btn.rot} transition-all duration-150 active:scale-95 w-full max-w-xs`}
+            >
+              <div className={`absolute inset-0 bg-red-600 translate-x-1 translate-y-1 transition-transform ${activeScreen === btn.id ? 'translate-x-2 translate-y-2' : 'group-hover:translate-x-2 group-hover:translate-y-2'}`} />
+              <div className={`relative font-black text-base md:text-lg px-5 py-3.5 uppercase tracking-wide border-2 transition-all ${activeScreen === btn.id ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
+                <span className="text-red-600 mr-3 font-mono text-xs">{btn.index}</span>
+                {btn.label}
+              </div>
+            </button>
+          ))}
 
-          {/* Initial Task Control */}
-          <button 
-            onClick={() => setActiveScreen('initial')}
-            className="group relative text-left transform -skew-x-12 rotate-2 transition-all duration-150 active:scale-95 w-full max-w-xs"
-          >
-            <div className={`absolute inset-0 bg-red-600 translate-x-1 translate-y-1 transition-transform ${activeScreen === 'initial' ? 'translate-x-2 translate-y-2' : 'group-hover:translate-x-2 group-hover:translate-y-2'}`} />
-            <div className={`relative font-black text-base md:text-lg px-5 py-3.5 uppercase tracking-wide border-2 transition-all ${activeScreen === 'initial' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
-              <span className="text-red-600 mr-3 font-mono text-xs">02</span>
-              Initial Task
-            </div>
-          </button>
-
-          {/* Start Workout Control */}
-          <button 
-            onClick={() => setActiveScreen('workout')}
-            className="group relative text-left transform -skew-x-12 -rotate-2 transition-all duration-150 active:scale-95 w-full max-w-xs"
-          >
-            <div className={`absolute inset-0 bg-red-600 translate-x-1 translate-y-1 transition-transform ${activeScreen === 'workout' ? 'translate-x-2 translate-y-2' : 'group-hover:translate-x-2 group-hover:translate-y-2'}`} />
-            <div className={`relative font-black text-base md:text-lg px-5 py-3.5 uppercase tracking-wide border-2 transition-all ${activeScreen === 'workout' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
-              <span className="text-red-600 mr-3 font-mono text-xs">03</span>
-              Start Workout
-            </div>
-          </button>
-
-          {/* Today's Schedule Control */}
-          <button 
-            onClick={() => setActiveScreen('schedule')}
-            className="group relative text-left transform -skew-x-12 rotate-1 transition-all duration-150 active:scale-95 w-full max-w-xs"
-          >
-            <div className={`absolute inset-0 bg-red-600 translate-x-1 translate-y-1 transition-transform ${activeScreen === 'schedule' ? 'translate-x-2 translate-y-2' : 'group-hover:translate-x-2 group-hover:translate-y-2'}`} />
-            <div className={`relative font-black text-base md:text-lg px-5 py-3.5 uppercase tracking-wide border-2 transition-all ${activeScreen === 'schedule' ? 'bg-white text-black border-black' : 'bg-black text-white border-white group-hover:text-red-500'}`}>
-              <span className="text-red-600 mr-3 font-mono text-xs">04</span>
-              Today's Schedule
-            </div>
-          </button>
+          {/* Secure API Key Entry Portal */}
+          <div className="mt-4 transform -skew-x-12 max-w-xs bg-neutral-950 p-2 border border-neutral-800 rounded">
+            <label className="block text-[9px] font-mono tracking-widest text-neutral-500 mb-1">// API ENGINE ENCRYPTION KEY</label>
+            <input 
+              type="password" 
+              placeholder="Paste Gemini Key here..." 
+              value={geminiApiKey}
+              onChange={(e) => setGeminiApiKey(e.target.value)}
+              className="w-full bg-black text-xs border border-neutral-700 p-1 text-red-500 font-mono focus:outline-none"
+            />
+          </div>
 
         </div>
 
-        {/* WORKSPACE AREA & OPERATIONAL SHARDS */}
+        {/* WORKSPACE OPERATIONS DISPLAY AREA */}
         <div className="lg:col-span-8 h-full flex flex-col justify-start pb-4 relative z-20">
           
-          {/* FUNCTIONAL MONITOR AREA */}
           <div className="flex-initial flex items-center justify-center p-2 mb-2 transform lg:-translate-y-12 xl:-translate-y-16">
             
+            {/* SCREEN 01: TODAY'S ACTIVE GOALS */}
             {activeScreen === 'goals' && (
               <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-red-600 transform -skew-x-6 p-6 w-full max-w-md shadow-[6px_6px_0px_0px_rgba(220,38,38,0.3)]">
-                <div className="text-red-500 font-mono text-xs tracking-widest mb-3 uppercase">// CURRENT OBJECTIVES</div>
+                <div className="text-red-500 font-mono text-xs tracking-widest mb-3 uppercase">// CURRENT ACTIVE OBJECTIVES</div>
                 <ul className="space-y-3 font-black text-base uppercase tracking-tight">
-                  <li className="flex items-center gap-3 bg-neutral-900/90 p-2 border-l-4 border-red-600">✕ Master React Complex State</li>
-                  <li className="flex items-center gap-3 bg-neutral-900/90 p-2 border-l-4 border-red-600">✕ Push Clean Core Architecture to GitHub</li>
-                  <li className="flex items-center gap-3 bg-neutral-900/90 p-2 border-l-4 border-red-600">✕ Deploy Initial Dashboard Matrix</li>
+                  {todayGoals.map((goal, idx) => (
+                    <li key={idx} className="flex items-center gap-3 bg-neutral-900/90 p-2 border-l-4 border-red-600">✕ {goal}</li>
+                  ))}
                 </ul>
               </div>
             )}
 
-            {/* INITIAL TASK SCREEN: Synchronized Dynamic Shard Dialogue Box Layout */}
+            {/* SCREEN 02: INITIAL SHARD TASK CUT-IN */}
             {activeScreen === 'initial' && (
               <div className="relative w-full max-w-xl lg:translate-y-10">
-                {/* Secondary Offset Shadow Layers */}
-                <div 
-                  className="absolute inset-0 bg-black clip-p5-large-blade translate-x-3 translate-y-3 pointer-events-none"
-                  style={{
-                    transformOrigin: 'right center',
-                    animation: 'p5-large-blade-extend 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards'
-                  }}
-                />
-                <div 
-                  className="absolute inset-0 bg-red-600 clip-p5-large-blade translate-x-1.5 translate-y-1.5 pointer-events-none"
-                  style={{
-                    transformOrigin: 'right center',
-                    animation: 'p5-large-blade-extend 0.48s cubic-bezier(0.19, 1, 0.22, 1) forwards'
-                  }}
-                />
-                
-                {/* Main Shard Body Block */}
-                <div 
-                  className="relative bg-white text-black border border-black clip-p5-large-blade p-6 pt-7 pb-8 pl-8 pr-24"
-                  style={{
-                    transformOrigin: 'right center',
-                    animation: 'p5-large-blade-extend 0.45s cubic-bezier(0.19, 1, 0.22, 1) forwards'
-                  }}
-                >
-                  <p 
-                    className="font-black text-xs md:text-sm uppercase tracking-tight leading-relaxed italic text-black font-sans select-text"
-                    style={{
-                      opacity: 0,
-                      animation: 'p5-text-slide 0.3s ease-out 0.45s forwards'
-                    }}
-                  >
+                <div className="absolute inset-0 bg-black clip-p5-large-blade translate-x-3 translate-y-3 pointer-events-none" style={{ transformOrigin: 'right center', animation: 'p5-large-blade-extend 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards' }} />
+                <div className="absolute inset-0 bg-red-600 clip-p5-large-blade translate-x-1.5 translate-y-1.5 pointer-events-none" style={{ transformOrigin: 'right center', animation: 'p5-large-blade-extend 0.48s cubic-bezier(0.19, 1, 0.22, 1) forwards' }} />
+                <div className="relative bg-white text-black border border-black clip-p5-large-blade p-6 pt-7 pb-8 pl-8 pr-24" style={{ transformOrigin: 'right center', animation: 'p5-large-blade-extend 0.45s cubic-bezier(0.19, 1, 0.22, 1) forwards' }}>
+                  <p className="font-black text-xs md:text-sm uppercase tracking-tight leading-relaxed italic text-black font-sans select-text" style={{ opacity: 0, animation: 'p5-text-slide 0.3s ease-out 0.45s forwards' }}>
                     "Your dull, dehydrated skin and messy, sluggish state are a complete eyesore, making you look utterly pathetic before the day has even begun. Go drink some water and wash that exhaustion off your face right now, unless you are content with letting everyone else outshine you while you rot like a total nobody."
                   </p>
                 </div>
               </div>
             )}
 
+            {/* SCREEN 03: COMBAT CONDITIONING WORKOUT TRACKER */}
             {activeScreen === 'workout' && (
               <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-white transform -skew-x-6 p-6 w-full max-w-xl text-left shadow-[6px_6px_0px_0px_#fff] grid grid-cols-1 md:grid-cols-12 gap-6 bg-black/95 backdrop-blur-sm">
-                
-                {/* Countdown Wing */}
                 <div className="md:col-span-5 flex flex-col justify-center items-center border-b-2 md:border-b-0 md:border-r-2 border-neutral-800 pb-4 md:pb-0 md:pr-4">
                   <div className="text-red-600 font-mono text-xs tracking-widest uppercase mb-1">// TIME REMAINING</div>
-                  <div className="font-mono text-4xl md:text-5xl font-black tracking-tighter text-white my-2 tabular-nums">
-                    {formatTime(workoutSeconds)}
-                  </div>
-                  <button className="bg-red-600 text-black font-black text-xs px-4 py-2 uppercase tracking-wide transform skew-x-12 border border-black hover:bg-white transition-colors w-full mt-2">
-                    ABORT OPERATION
-                  </button>
+                  <div className="font-mono text-4xl md:text-5xl font-black tracking-tighter text-white my-2 tabular-nums">{formatTime(workoutSeconds)}</div>
+                  <button onClick={() => setWorkoutSeconds(900)} className="bg-red-600 text-black font-black text-xs px-4 py-2 uppercase tracking-wide transform skew-x-12 border border-black hover:bg-white transition-colors w-full mt-2">ABORT OPERATION</button>
                 </div>
-
-                {/* Workout Plan Layout Area */}
                 <div className="md:col-span-7 pl-0 md:pl-2 flex flex-col justify-between">
                   <div>
                     <div className="text-red-500 font-mono text-xs tracking-widest uppercase mb-2">// COMBAT CONDITIONING PLAN</div>
                     <ul className="space-y-2 font-black text-xs md:text-sm uppercase tracking-tight text-neutral-400">
-                      <li className="flex justify-between items-center bg-neutral-900/80 p-2 border-l-2 border-white text-white">
-                        <span>01 // PUSH COMPONENT</span>
-                        <span className="font-mono text-red-500">4 SETS</span>
-                      </li>
-                      <li className="flex justify-between items-center bg-neutral-900/40 p-2 border-l-2 border-neutral-700">
-                        <span>02 // PULL PROTOCOL</span>
-                        <span className="font-mono text-neutral-500">3 SETS</span>
-                      </li>
-                      <li className="flex justify-between items-center bg-neutral-900/40 p-2 border-l-2 border-neutral-700">
-                        <span>03 // CORE SEVERITY</span>
-                        <span className="font-mono text-neutral-500">TO FAILURE</span>
-                      </li>
+                      <li className="flex justify-between items-center bg-neutral-900/80 p-2 border-l-2 border-white text-white"><span>01 // PUSH COMPONENT</span><span className="font-mono text-red-500">4 SETS</span></li>
+                      <li className="flex justify-between items-center bg-neutral-900/40 p-2 border-l-2 border-neutral-700"><span>02 // PULL PROTOCOL</span><span className="font-mono text-neutral-500">3 SETS</span></li>
+                      <li className="flex justify-between items-center bg-neutral-900/40 p-2 border-l-2 border-neutral-700"><span>03 // CORE SEVERITY</span><span className="font-mono text-neutral-500">TO FAILURE</span></li>
                     </ul>
                   </div>
-                  <div className="mt-3 text-[10px] text-neutral-600 font-mono tracking-wider uppercase italic">
-                    * Layout segment secured. Routine arrays can be customized later.
-                  </div>
                 </div>
-
               </div>
             )}
 
+            {/* SCREEN 04: SCHEDULE TIMELINE MONITOR */}
             {activeScreen === 'schedule' && (
-              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-gradient-to-br from-neutral-900 to-black border-2 border-neutral-800 p-6 w-full max-w-md transform -skew-x-6">
+              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-gradient-to-br from-neutral-900 to-black border-2 border-neutral-800 p-6 w-full max-w-md transform -skew-x-6 shadow-[6px_6px_0px_0px_rgba(255,255,255,0.05)]">
                 <div className="text-red-500 font-mono text-xs tracking-widest uppercase mb-4">// CHRONOLOGICAL OPERATIONAL TIMELINE</div>
                 <div className="space-y-3 font-black text-xs md:text-sm tracking-tight uppercase">
-                  <div className="flex justify-between border-b border-neutral-800 pb-1.5"><span className="text-neutral-400">07:00 AM</span> <span className="text-white">Wake Matrix Initialization</span></div>
-                  <div className="flex justify-between border-b border-neutral-800 pb-1.5"><span className="text-red-500">09:00 AM</span> <span className="text-white">Core Development Operations</span></div>
-                  <div className="flex justify-between border-b border-neutral-800 pb-1.5"><span className="text-neutral-400">04:00 PM</span> <span className="text-white">Data Structures & Algo Drill</span></div>
-                  <div className="flex justify-between pb-0.5"><span className="text-neutral-400">09:00 PM</span> <span className="text-white">Combat Workout Loop</span></div>
+                  {todaySchedule.map((slot, index) => (
+                    <div key={index} className="flex justify-between border-b border-neutral-800 pb-1.5">
+                      <span className={index % 2 === 1 ? "text-red-500 font-mono" : "text-neutral-400 font-mono"}>{slot.time}</span> 
+                      <span className="text-white text-right">{slot.task}</span>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            )}
+
+            {/* SCREEN 05: DEPLOY NEXT DAY GENERATOR PROTOCOL */}
+            {activeScreen === 'deploy' && (
+              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-red-600 transform -skew-x-3 p-6 w-full max-w-lg shadow-[6px_6px_0px_0px_#dc2626]">
+                <div className="text-red-500 font-mono text-xs tracking-widest mb-1 uppercase">// COGNITIVE MAP GENERATOR</div>
+                <div className="text-[10px] text-neutral-400 font-mono mb-4 uppercase tracking-tighter">Mon-Fri timeline maps outside 09:00 AM - 05:00 PM college constraints</div>
+                
+                <form onSubmit={handleDeployNextDay} className="space-y-4">
+                  {tomorrowGoals.map((val, index) => (
+                    <div key={index} className="flex flex-col gap-1">
+                      <span className="font-mono text-red-500 text-[10px] font-bold">TARGET DATA // 0{index + 1}</span>
+                      <input 
+                        type="text"
+                        required
+                        placeholder={`Enter Tomorrow's Objective ${index + 1}...`}
+                        value={val}
+                        onChange={(e) => {
+                          const updated = [...tomorrowGoals];
+                          updated[index] = e.target.value;
+                          setTomorrowGoals(updated);
+                        }}
+                        className="w-full bg-neutral-900 border-b-2 border-neutral-700 text-sm font-black p-2 uppercase tracking-wide focus:outline-none focus:border-red-600 transition-colors text-white"
+                      />
+                    </div>
+                  ))}
+
+                  <button 
+                    type="submit" 
+                    disabled={isLoadingAI}
+                    className="w-full bg-red-600 text-black text-center font-black py-3 px-4 uppercase tracking-wider text-sm transform skew-x-6 border-2 border-black hover:bg-white hover:text-black transition-colors shadow-[4px_4px_0px_0px_#fff]"
+                  >
+                    {isLoadingAI ? "PROCESSING STRATEGY CONSTRAINTS..." : "DEPLOY TOMORROW PROTOCOL"}
+                  </button>
+                </form>
               </div>
             )}
 
           </div>
 
-          {/* TAILED HORIZONTAL SHARD ENGINE (Hides on 'initial' screen as it's shifted fully to the workspace area) */}
+          {/* LOWER TAILED DIALOGUE BLADES PANEL */}
           {activeScreen !== 'initial' && (
             <div className="relative w-full max-w-md mx-auto lg:mx-0 flex flex-col gap-3 mt-2 items-start transform lg:-translate-x-10 lg:translate-y-4 z-30">
               
-              {/* TOP SHARD WITH DIRECTIONAL TAIL POINT */}
+              {/* TOP BLADE */}
               <div className="relative w-full min-h-[3.5rem] transform origin-right">
                 <div className="absolute inset-0 bg-black clip-top-blade translate-x-1.5 translate-y-1 pointer-events-none" />
-                
                 <div 
                   key={`top-${activeScreen}`} 
                   className="absolute inset-0 bg-white border-2 border-black clip-top-blade flex items-center pl-6 pr-16 py-2"
-                  style={{
-                    transformOrigin: 'right center',
-                    animation: 'p5-blade-extend 0.45s cubic-bezier(0.19, 1, 0.22, 1) forwards'
-                  }}
+                  style={{ transformOrigin: 'right center', animation: 'p5-blade-extend 0.45s cubic-bezier(0.19, 1, 0.22, 1) forwards' }}
                 >
-                  <span 
-                    className="text-black font-black font-mono text-xs md:text-sm tracking-tighter uppercase leading-tight"
-                    style={{
-                      opacity: 0,
-                      animation: 'p5-text-slide 0.3s ease-out 0.45s forwards'
-                    }}
-                  >
+                  <span className="text-black font-black font-mono text-xs md:text-sm tracking-tighter uppercase leading-tight" style={{ opacity: 0, animation: 'p5-text-slide 0.3s ease-out 0.45s forwards' }}>
                     {systemDialogue[activeScreen].prompt}
                   </span>
                 </div>
               </div>
 
-              {/* LOWER SHARD WITH LOWER DIRECTIONAL TAIL HOOK */}
+              {/* BOTTOM BLADE */}
               <div className="relative w-full min-h-[3.5rem] transform origin-right -mt-1">
                 <div className="absolute inset-0 bg-red-600 clip-bottom-blade translate-x-0.5 translate-y-0.5 pointer-events-none" />
-                
                 <div 
                   key={`bottom-${activeScreen}`} 
                   className="absolute inset-0 bg-black border border-white clip-bottom-blade flex items-center pl-6 pr-16 py-2 justify-between gap-4"
-                  style={{
-                    transformOrigin: 'right center',
-                    animation: 'p5-blade-extend 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards'
-                  }}
+                  style={{ transformOrigin: 'right center', animation: 'p5-blade-extend 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards' }}
                 >
-                  <p 
-                    className="text-white font-mono font-black text-[10px] md:text-xs tracking-tight italic uppercase leading-tight"
-                    style={{
-                      opacity: 0,
-                      animation: 'p5-text-slide 0.3s ease-out 0.5s forwards'
-                    }}
-                  >
+                  <p className="text-white font-mono font-black text-[10px] md:text-xs tracking-tight italic uppercase leading-tight" style={{ opacity: 0, animation: 'p5-text-slide 0.3s ease-out 0.5s forwards' }}>
                     "{systemDialogue[activeScreen].subText}"
                   </p>
-                  
-                  <span 
-                    className="text-red-500 font-black text-sm animate-pulse font-mono hidden md:inline shrink-0"
-                    style={{
-                      opacity: 0,
-                      animation: 'p5-text-slide 0.3s ease-out 0.5s forwards'
-                    }}
-                  >
-                    ►
-                  </span>
+                  <span className="text-red-500 font-black text-sm animate-pulse font-mono hidden md:inline shrink-0" style={{ opacity: 0, animation: 'p5-text-slide 0.3s ease-out 0.5s forwards' }}>►</span>
                 </div>
               </div>
 
