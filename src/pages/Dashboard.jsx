@@ -1,66 +1,114 @@
 import React, { useState, useEffect } from 'react';
+import { workoutRoutine } from '../data/workoutRoutine';
 
 export default function Dashboard() {
   const [activeScreen, setActiveScreen] = useState('goals');
   const [workoutSeconds, setWorkoutSeconds] = useState(900); 
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // --- CORE DATA & SYSTEM STATES ---
   const [tomorrowGoals, setTomorrowGoals] = useState(['', '', '']);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
 
-  // Primary Data States loaded from LocalStorage cache or fallback defaults
-  const [todayGoals, setTodayGoals] = useState(() => {
-    const saved = localStorage.getItem('p5_today_goals');
-    return saved ? JSON.parse(saved) : [
-      "Master React Complex State",
-      "Push Clean Core Architecture to GitHub",
-      "Deploy Initial Dashboard Matrix"
-    ];
-  });
+  // Fallback structural defaults for initial server paint / unhydrated states
+  const [todayGoals, setTodayGoals] = useState([
+    "Master React Complex State",
+    "Push Clean Core Architecture to GitHub",
+    "Deploy Initial Dashboard Matrix"
+  ]);
 
-  const [todaySchedule, setTodaySchedule] = useState(() => {
-    const saved = localStorage.getItem('p5_today_schedule');
-    return saved ? JSON.parse(saved) : [
-      { time: "07:00 AM", task: "Wake Matrix Initialization" },
-      { time: "09:00 AM", task: "Core Development Operations" },
-      { time: "04:00 PM", task: "Data Structures & Algo Drill" },
-      { time: "09:00 PM", task: "Combat Workout Loop" }
-    ];
-  });
+  const [todaySchedule, setTodaySchedule] = useState([
+    { time: "07:00 AM", task: "Wake Matrix & Hydration" },
+    { time: "07:30 AM", task: "Bath, Grooming & Getting Ready" },
+    { time: "08:15 AM", task: "Breakfast & College Commute" },
+    { time: "09:00 AM", task: "College Operations Window" },
+    { time: "01:00 PM", task: "Lunch Break Protocol" },
+    { time: "05:00 PM", task: "Return Commute & Decompress" },
+    { time: "06:00 PM", task: "Family Connection & Tea" },
+    { time: "07:00 PM", task: "Target Goal Study & Homework" },
+    { time: "09:00 PM", task: "Combat Workout Loop" },
+    { time: "10:30 PM", task: "Night Wind-Down Sequence" }
+  ]);
 
-  // --- AUTOMATED DAY-TURNOVER HANDLING ENGINE ---
+  // Determine current day configuration properties 
+  const currentDayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const todayWorkout = workoutRoutine.find((r) => r.day === currentDayName) || workoutRoutine[0];
+
+  // Sync active exercise countdown clock properties
   useEffect(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const savedDate = localStorage.getItem('p5_dashboard_last_date');
-
-    // Automatically shift tomorrow's mapped out strategy into today's deck on new calendar date
-    if (savedDate && savedDate !== todayStr) {
-      const pendingGoals = localStorage.getItem('p5_tomorrow_goals');
-      const pendingSchedule = localStorage.getItem('p5_tomorrow_schedule');
-
-      if (pendingGoals) {
-        const parsedGoals = JSON.parse(pendingGoals);
-        setTodayGoals(parsedGoals);
-        localStorage.setItem('p5_today_goals', JSON.stringify(parsedGoals));
-      }
-      if (pendingSchedule) {
-        const parsedSched = JSON.parse(pendingSchedule);
-        setTodaySchedule(parsedSched);
-        localStorage.setItem('p5_today_schedule', JSON.stringify(parsedSched));
-      }
+    if (activeScreen === 'workout' && todayWorkout?.exercises?.[currentExerciseIdx]) {
+      setWorkoutSeconds(todayWorkout.exercises[currentExerciseIdx].timePerSet);
     }
-    localStorage.setItem('p5_dashboard_last_date', todayStr);
+  }, [currentExerciseIdx, activeScreen]);
+
+  // --- SAFE UNIFIED HYDRATION & DAY-TURNOVER HANDLING ENGINE ---
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedKey = localStorage.getItem('p5_gemini_api_key');
+        if (savedKey) setGeminiApiKey(savedKey);
+
+        // Track local calendar dates to avoid UTC timezone cutoff errors
+        const todayStr = new Date().toLocaleDateString('en-CA'); 
+        const savedDate = localStorage.getItem('p5_dashboard_last_date');
+
+        // Execute turnover sequence immediately prior to populating any states
+        if (savedDate && savedDate !== todayStr) {
+          const pendingGoals = localStorage.getItem('p5_tomorrow_goals');
+          const pendingSchedule = localStorage.getItem('p5_tomorrow_schedule');
+
+          if (pendingGoals && pendingGoals !== JSON.stringify(['', '', ''])) {
+            localStorage.setItem('p5_today_goals', pendingGoals);
+            localStorage.setItem('p5_tomorrow_goals', JSON.stringify(['', '', '']));
+          }
+          if (pendingSchedule) {
+            localStorage.setItem('p5_today_schedule', pendingSchedule);
+            localStorage.removeItem('p5_tomorrow_schedule');
+          }
+        }
+
+        // Pull processed records directly into application view frames
+        const finalTodayGoals = localStorage.getItem('p5_today_goals');
+        const finalTodaySchedule = localStorage.getItem('p5_today_schedule');
+        const finalTomorrowGoals = localStorage.getItem('p5_tomorrow_goals');
+
+        if (finalTodayGoals) {
+          setTodayGoals(JSON.parse(finalTodayGoals));
+        } else {
+          localStorage.setItem('p5_today_goals', JSON.stringify(todayGoals));
+        }
+
+        if (finalTodaySchedule) {
+          setTodaySchedule(JSON.parse(finalTodaySchedule));
+        } else {
+          localStorage.setItem('p5_today_schedule', JSON.stringify(todaySchedule));
+        }
+
+        if (finalTomorrowGoals) {
+          setTomorrowGoals(JSON.parse(finalTomorrowGoals));
+        }
+
+        localStorage.setItem('p5_dashboard_last_date', todayStr);
+      } catch (e) {
+        console.error("System storage metrics initialization error:", e);
+      }
+      setIsLoaded(true);
+    }
   }, []);
 
-  // Tactical Countdown Engine
+  // Tactical Countdown Engine with Auto-Advance Capability
   useEffect(() => {
-    if (activeScreen !== 'workout') return;
-    
+    if (activeScreen !== 'workout' || todayWorkout?.isVideoDay) return;
+
     const timer = setInterval(() => {
       setWorkoutSeconds((prev) => {
-        if (prev <= 0) {
-          clearInterval(timer);
+        // When the timer is exactly running out to 0
+        if (prev <= 1) {
+          if (todayWorkout?.exercises && currentExerciseIdx < todayWorkout.exercises.length - 1) {
+            setCurrentExerciseIdx((prevIdx) => prevIdx + 1);
+          }
           return 0;
         }
         return prev - 1;
@@ -68,7 +116,7 @@ export default function Dashboard() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activeScreen]);
+  }, [activeScreen, currentExerciseIdx, todayWorkout]);
 
   const formatTime = (totalSeconds) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -91,25 +139,36 @@ export default function Dashboard() {
     const tomorrowDayName = daysOfWeek[tomorrowIndex];
     const isWeekend = tomorrowDayName === 'Saturday' || tomorrowDayName === 'Sunday';
 
-    // Programmatic routing parameters
     const systemConstraints = `
       - Tomorrow is ${tomorrowDayName}.
-      - Mon to Fri constraints: College from 9:00 AM to 5:00 PM with a Lunch Break between 1:00 PM and 2:00 PM. 
-      - Sat and Sun constraints: Off from college. Completely open and flexible hours.
-      - Distribute these 3 items smoothly into the schedule array matrix: 1. ${tomorrowGoals[0]} | 2. ${tomorrowGoals[1]} | 3. ${tomorrowGoals[2]}.
+      - Mon to Fri constraints: College from 9:00 AM to 5:00 PM with a Lunch Break between 1:00 PM and 2:00 PM. Include travel time/commute buffers before 9 AM and after 5 PM.
+      - Sat and Sun constraints: Off from college. Completely open schedule.
+      - Core Targets to schedule: 1. ${tomorrowGoals[0]} | 2. ${tomorrowGoals[1]} | 3. ${tomorrowGoals[2]}.
     `;
 
     let generatedSchedule = [];
 
     if (geminiApiKey.trim() !== '') {
       try {
-        const prompt = `You are a high-performance tactical planner. Generate a comprehensive daily timeline for tomorrow (${tomorrowDayName}) inside an app dashboard. 
-        Context details: ${systemConstraints}
-        Provide a chronological breakdown of the day starting from wake-up to bed time (4 to 6 data entries).
-        Return ONLY a clean JSON array of objects following exactly this schema format, with no markdown codeblock wraps or other conversational text:
+        const prompt = `You are a meticulous, high-performance tactical routine planner. Generate a highly detailed, realistic, and granular 24-hour chronological schedule array for tomorrow (${tomorrowDayName}).
+        
+        Context and parameters: ${systemConstraints}
+        
+        CRITICAL RULES FOR REALISTIC SCHEDULING:
+        1. Do NOT just list broad blocks. You must generate a highly comprehensive schedule containing between 8 to 12 chronological steps.
+        2. Account for human routines explicitly:
+           - Include a Morning Routine block (e.g., "07:00 AM" or "07:30 AM") specifically mentioning bathing, personal hygiene, breakfast, and getting ready.
+           - Include a Commute/Travel step to and from college.
+           - Include a post-college Decompression / Family time block (e.g., "05:40 PM" or "06:00 PM") specifically mentioning talking with family, dinner, or relaxing.
+           - Allocate distinct, dedicated time blocks for Self-Study, Homework, or working specifically on the 3 core objectives provided.
+           - Include a dedicated night fitness loop/workout step.
+           - End with a clear wind-down / sleep preparation step.
+        
+        Return ONLY a clean, valid JSON array of objects following exactly this schema format with absolutely no markdown wrapping, no \`\`\`json tags, and no conversational filler text:
         [
-          {"time": "07:00 AM", "task": "Wake-up Routine"},
-          {"time": "09:00 AM", "task": "College Operations"},
+          {"time": "07:00 AM", "task": "Wake Up & Hydration Matrix"},
+          {"time": "07:20 AM", "task": "Bath, Personal Hygiene & Grooming"},
+          {"time": "08:00 AM", "task": "Breakfast & College Commute Route"},
           ...
         ]`;
 
@@ -120,66 +179,75 @@ export default function Dashboard() {
         });
 
         const data = await response.json();
-        const rawText = data.candidates[0].content.parts[0].text;
-        const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-        generatedSchedule = JSON.parse(cleanJson);
+        if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          const rawText = data.candidates[0].content.parts[0].text;
+          
+          // Isolate array bounds defensively to prevent raw text compilation errors
+          const startIdx = rawText.indexOf('[');
+          const endIdx = rawText.lastIndexOf(']');
+          
+          if (startIdx !== -1 && endIdx !== -1) {
+            const cleanJson = rawText.substring(startIdx, endIdx + 1).trim();
+            generatedSchedule = JSON.parse(cleanJson);
+          } else {
+            throw new Error("JSON formatting boundaries absent");
+          }
+        } else {
+          throw new Error("Invalid API payload framework");
+        }
       } catch (err) {
-        console.warn("AI Endpoint configuration dropped. Running local layout scheduler backup...", err);
+        console.warn("AI layout failed or format mismatched. Dropping to local smart fallback...", err);
         generatedSchedule = runLocalFallbackScheduler(isWeekend);
       }
     } else {
       generatedSchedule = runLocalFallbackScheduler(isWeekend);
     }
 
-    // Cache planned data sets for upcoming rotation trigger
     localStorage.setItem('p5_tomorrow_goals', JSON.stringify(tomorrowGoals));
     localStorage.setItem('p5_tomorrow_schedule', JSON.stringify(generatedSchedule));
 
     setIsLoadingAI(false);
-    alert(`STRATEGY DEPLOYED: Protocols locked for tomorrow (${tomorrowDayName}). They will load automatically upon next-day turnover!`);
+    alert(`STRATEGY DEPLOYED: High-granularity protocols locked for ${tomorrowDayName}. They will load automatically upon next-day turnover!`);
     setActiveScreen('goals');
   };
 
-  // Static rule-based backup algorithm matching college guidelines exactly
   const runLocalFallbackScheduler = (isWeekend) => {
     if (!isWeekend) {
       return [
-        { time: "07:00 AM", task: `Initialization // Target Prep: ${tomorrowGoals[0].substring(0, 20)}...` },
-        { time: "09:00 AM", task: "COLLEGE CORE WINDOW // START HOURS" },
-        { time: "01:00 PM", task: "SYSTEM BUFFER // LUNCH BREAK PROTOCOL" },
-        { time: "05:00 PM", task: "COLLEGE OUTRUN TERMINATION" },
-        { time: "06:30 PM", task: `TACTICAL FOCUS // EXECUTE: ${tomorrowGoals[1].substring(0, 25)}...` },
-        { time: "09:00 PM", task: `NIGHT ENGINE // ASSIGNMENT: ${tomorrowGoals[2].substring(0, 25)}...` }
+        { time: "07:00 AM", task: "Wake Up Matrix & Morning Hydration" },
+        { time: "07:25 AM", task: "Bath, Personal Hygiene & Get Ready" },
+        { time: "08:15 AM", task: "Breakfast & College Transit Buffer" },
+        { time: "09:00 AM", task: "COLLEGE OPERATIONS WINDOW // START" },
+        { time: "01:00 PM", task: "System Fuel // Lunch Break Protocol" },
+        { time: "05:00 PM", task: "College Termination & Return Commute" },
+        { time: "05:45 PM", task: "Decompress & Quality Time with Family" },
+        { time: "06:45 PM", task: `CORE STUDY // Homework & Target: ${tomorrowGoals[0].substring(0, 30)}` },
+        { time: "08:15 PM", task: `SECONDARY DRILL // Target: ${tomorrowGoals[1].substring(0, 30)}` },
+        { time: "09:15 PM", task: `TERTIARY OPERATIONS // Target: ${tomorrowGoals[2].substring(0, 30)}` },
+        { time: "10:00 PM", task: "Combat Fitness Loop & Conditioning" },
+        { time: "11:00 PM", task: "System Sleep Hibernation Sequence" }
       ];
     } else {
       return [
-        { time: "08:30 AM", task: "Weekend Recovery & Hydration Loop" },
-        { time: "10:00 AM", task: `WEEKEND DRIVE // ENGAGE: ${tomorrowGoals[0]}` },
-        { time: "02:00 PM", task: `STRATEGY OPERATION // FOCUS: ${tomorrowGoals[1]}` },
-        { time: "06:00 PM", task: `SECONDARY OBJECTIVE // COMPLETE: ${tomorrowGoals[2]}` },
-        { time: "10:00 PM", task: "System Hibernation Sequence" }
+        { time: "08:00 AM", task: "Weekend Wake-up & Morning Fluid Cycle" },
+        { time: "08:30 AM", task: "Bath, Refreshment & Extended Breakfast" },
+        { time: "09:30 AM", task: "Family Conversation & Household Sync" },
+        { time: "10:30 AM", task: `WEEKEND DRIVE // Focus: ${tomorrowGoals[0]}` },
+        { time: "02:00 PM", task: `STRATEGY DRILL // Focus: ${tomorrowGoals[1]}` },
+        { time: "05:00 PM", task: "Leisure, Walk, or Social Intermission" },
+        { time: "06:30 PM", task: `FINAL OBJECTIVE // Complete: ${tomorrowGoals[2]}` },
+        { time: "09:00 PM", task: "Combat Fitness Loop / Evening Run" },
+        { time: "11:00 PM", task: "Deep Sleep Cycles Engaged" }
       ];
     }
   };
 
   const systemDialogue = {
-    goals: {
-      prompt: "TARGETS LOCATED.",
-      subText: "ELIMINATE COGNITIVE OBJECTIVES BEFORE MIDNIGHT."
-    },
+    goals: { prompt: "TARGETS LOCATED.", subText: "ELIMINATE COGNITIVE OBJECTIVES BEFORE MIDNIGHT." },
     initial: { prompt: "", subText: "" },
-    workout: {
-      prompt: "There are no shortcuts to finding out what it truly means to be strong",
-      subText: "Lace up your shoes and give it everything you've got today—let's push past our limits together!"
-    },
-    schedule: {
-      prompt: "TIMELINE ROUTE ACQUIRED.",
-      subText: "EXECUTE SEQUENCE CHRONOLOGICALLY PER PARAMETERS."
-    },
-    deploy: {
-      prompt: "STRATEGIC FORECAST INITIALIZED.",
-      subText: "SPECIFY OBJECTIVES AND DISTRIBUTE INTEL PATTERNS FOR TOMORROW."
-    }
+    workout: { prompt: "There are no shortcuts to finding out what it truly means to be strong", subText: "Lace up your shoes and give it everything you've got today—let's push past our limits together!" },
+    schedule: { prompt: "TIMELINE ROUTE ACQUIRED.", subText: "EXECUTE SEQUENCE CHRONOLOGICALLY PER PARAMETERS." },
+    deploy: { prompt: "", subText: "" }
   };
 
   return (
@@ -212,11 +280,21 @@ export default function Dashboard() {
         .clip-p5-large-blade { clip-path: polygon(0% 6%, 84% 0%, 86% 28%, 100% 50%, 86% 72%, 84% 100%, 0% 94%); }
       `}</style>
 
-      {/* High-Contrast Graphic Layout Elements */}
       <div className="absolute inset-0 bg-gradient-to-br from-black via-[#141414] to-black z-0" />
       <div className="absolute -top-40 -right-20 w-8/12 h-[120%] bg-red-700/10 transform rotate-12 origin-top-right pointer-events-none z-0" />
 
       {/* DYNAMIC BACKGROUND ANIME CUT-IN CARDS */}
+      {activeScreen === 'goals' && (
+        <div style={{ animation: 'p5-view-entrance 0.3s ease-out forwards' }} className="absolute bottom-0 right-0 w-[52%] h-[80%] z-10 pointer-events-none hidden lg:block">
+          <div className="relative w-full h-full flex justify-end items-end overflow-hidden">
+            <div className="absolute inset-0 clip-anime-frame bg-neutral-900/40 border-l-4 border-black z-0">
+              <div className="absolute top-0 left-0 w-full h-full bg-red-600/10 transform -skew-x-12 origin-top-left" />
+            </div>
+            <video src="/WhatsApp Video 2026-07-05 at 11.30.55 PM.mp4" autoPlay loop muted playsInline className="relative w-full h-full object-contain object-right-bottom mix-blend-lighten z-10" />
+          </div>
+        </div>
+      )}
+
       {activeScreen === 'initial' && (
         <div style={{ animation: 'p5-view-entrance 0.3s ease-out forwards' }} className="absolute bottom-0 right-0 w-[55%] h-[85%] z-10 pointer-events-none hidden lg:block">
           <div className="relative w-full h-full flex justify-end items-end overflow-hidden">
@@ -235,6 +313,17 @@ export default function Dashboard() {
               <div className="absolute top-0 left-0 w-full h-full bg-red-600/10 transform -skew-x-12 origin-top-left" />
             </div>
             <video src="/WhatsApp Video 2026-06-29 at 9.06.45 PM.mp4" autoPlay loop muted playsInline className="relative w-full h-full object-contain object-right-bottom mix-blend-lighten z-10" />
+          </div>
+        </div>
+      )}
+
+      {activeScreen === 'schedule' && (
+        <div style={{ animation: 'p5-view-entrance 0.3s ease-out forwards' }} className="absolute bottom-0 right-0 w-[50%] h-[78%] z-10 pointer-events-none hidden lg:block">
+          <div className="relative w-full h-full flex justify-end items-end overflow-hidden">
+            <div className="absolute inset-0 clip-anime-frame bg-neutral-900/40 border-l-4 border-black z-0">
+              <div className="absolute top-0 left-0 w-full h-full bg-red-600/10 transform -skew-x-12 origin-top-left" />
+            </div>
+            <video src="/WhatsApp Video 2026-07-06 at 12.28.08 AM.mp4" autoPlay loop muted playsInline className="relative w-full h-full object-contain object-right-bottom mix-blend-lighten z-10" />
           </div>
         </div>
       )}
@@ -276,7 +365,12 @@ export default function Dashboard() {
               type="password" 
               placeholder="Paste Gemini Key here..." 
               value={geminiApiKey}
-              onChange={(e) => setGeminiApiKey(e.target.value)}
+              onChange={(e) => {
+                setGeminiApiKey(e.target.value);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('p5_gemini_api_key', e.target.value);
+                }
+              }}
               className="w-full bg-black text-xs border border-neutral-700 p-1 text-red-500 font-mono focus:outline-none"
             />
           </div>
@@ -284,13 +378,13 @@ export default function Dashboard() {
         </div>
 
         {/* WORKSPACE OPERATIONS DISPLAY AREA */}
-        <div className="lg:col-span-8 h-full flex flex-col justify-start pb-4 relative z-20">
+        <div className={`lg:col-span-8 h-full flex flex-col ${activeScreen === 'deploy' ? 'justify-center items-center lg:translate-y-12' : 'justify-start'} pb-4 relative z-20`}>
           
-          <div className="flex-initial flex items-center justify-center p-2 mb-2 transform lg:-translate-y-12 xl:-translate-y-16">
+          <div className={`flex-initial flex items-center justify-center p-2 mb-2 w-full ${activeScreen !== 'deploy' ? 'transform lg:-translate-y-12 xl:-translate-y-16' : ''}`}>
             
             {/* SCREEN 01: TODAY'S ACTIVE GOALS */}
             {activeScreen === 'goals' && (
-              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-red-600 transform -skew-x-6 p-6 w-full max-w-md shadow-[6px_6px_0px_0px_rgba(220,38,38,0.3)]">
+              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-red-600 transform -skew-x-6 p-6 w-full max-w-md shadow-[6px_6px_0px_0px_rgba(220,38,38,0.3)] bg-black/95 backdrop-blur-sm">
                 <div className="text-red-500 font-mono text-xs tracking-widest mb-3 uppercase">// CURRENT ACTIVE OBJECTIVES</div>
                 <ul className="space-y-3 font-black text-base uppercase tracking-tight">
                   {todayGoals.map((goal, idx) => (
@@ -317,17 +411,58 @@ export default function Dashboard() {
             {activeScreen === 'workout' && (
               <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-white transform -skew-x-6 p-6 w-full max-w-xl text-left shadow-[6px_6px_0px_0px_#fff] grid grid-cols-1 md:grid-cols-12 gap-6 bg-black/95 backdrop-blur-sm">
                 <div className="md:col-span-5 flex flex-col justify-center items-center border-b-2 md:border-b-0 md:border-r-2 border-neutral-800 pb-4 md:pb-0 md:pr-4">
-                  <div className="text-red-600 font-mono text-xs tracking-widest uppercase mb-1">// TIME REMAINING</div>
-                  <div className="font-mono text-4xl md:text-5xl font-black tracking-tighter text-white my-2 tabular-nums">{formatTime(workoutSeconds)}</div>
-                  <button onClick={() => setWorkoutSeconds(900)} className="bg-red-600 text-black font-black text-xs px-4 py-2 uppercase tracking-wide transform skew-x-12 border border-black hover:bg-white transition-colors w-full mt-2">ABORT OPERATION</button>
+                  {todayWorkout.isVideoDay ? (
+                    <div className="w-full flex flex-col items-center">
+                      <div className="text-red-600 font-mono text-xs tracking-widest uppercase mb-1">// VIDEO ACTIVE</div>
+                      <video 
+                        src={todayWorkout.videoSrc} 
+                        controls 
+                        autoPlay 
+                        muted 
+                        playsInline 
+                        className="w-full rounded border border-neutral-800 my-2 max-h-[120px] object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-red-600 font-mono text-xs tracking-widest uppercase mb-1">// TIME REMAINING</div>
+                      <div className="font-mono text-4xl md:text-5xl font-black tracking-tighter text-white my-2 tabular-nums">{formatTime(workoutSeconds)}</div>
+                    </>
+                  )}
+                  <button 
+                    onClick={() => {
+                      if (!todayWorkout.isVideoDay) {
+                        setWorkoutSeconds(todayWorkout.exercises[currentExerciseIdx]?.timePerSet || 0);
+                      }
+                    }} 
+                    className="bg-red-600 text-black font-black text-xs px-4 py-2 uppercase tracking-wide transform skew-x-12 border border-black hover:bg-white transition-colors w-full mt-2"
+                  >
+                    RESET PROTOCOL
+                  </button>
                 </div>
                 <div className="md:col-span-7 pl-0 md:pl-2 flex flex-col justify-between">
                   <div>
-                    <div className="text-red-500 font-mono text-xs tracking-widest uppercase mb-2">// COMBAT CONDITIONING PLAN</div>
+                    <div className="text-red-500 font-mono text-xs tracking-widest uppercase mb-2">
+                      // {todayWorkout.type} // {todayWorkout.mode}
+                    </div>
                     <ul className="space-y-2 font-black text-xs md:text-sm uppercase tracking-tight text-neutral-400">
-                      <li className="flex justify-between items-center bg-neutral-900/80 p-2 border-l-2 border-white text-white"><span>01 // PUSH COMPONENT</span><span className="font-mono text-red-500">4 SETS</span></li>
-                      <li className="flex justify-between items-center bg-neutral-900/40 p-2 border-l-2 border-neutral-700"><span>02 // PULL PROTOCOL</span><span className="font-mono text-neutral-500">3 SETS</span></li>
-                      <li className="flex justify-between items-center bg-neutral-900/40 p-2 border-l-2 border-neutral-700"><span>03 // CORE SEVERITY</span><span className="font-mono text-neutral-500">TO FAILURE</span></li>
+                      {todayWorkout.exercises.map((ex, idx) => {
+                        const isActive = idx === currentExerciseIdx;
+                        return (
+                          <li 
+                            key={ex.id} 
+                            onClick={() => setCurrentExerciseIdx(idx)}
+                            className={`flex justify-between items-center p-2 border-l-2 cursor-pointer transition-all ${
+                              isActive 
+                                ? 'bg-neutral-900 border-white text-white font-black shadow-[0_0_20px_rgba(255,255,255,0.3)] drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]' 
+                                : 'bg-neutral-900/40 border-neutral-800 text-neutral-500 hover:text-neutral-300'
+                            }`}
+                          >
+                            <span>{ex.id} // {ex.name}</span>
+                            <span className={`font-mono text-xs ${isActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] animate-pulse' : 'text-neutral-600'}`}>{ex.reps}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 </div>
@@ -336,12 +471,12 @@ export default function Dashboard() {
 
             {/* SCREEN 04: SCHEDULE TIMELINE MONITOR */}
             {activeScreen === 'schedule' && (
-              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-gradient-to-br from-neutral-900 to-black border-2 border-neutral-800 p-6 w-full max-w-md transform -skew-x-6 shadow-[6px_6px_0px_0px_rgba(255,255,255,0.05)]">
+              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black/95 backdrop-blur-sm border-2 border-neutral-800 p-6 w-full max-w-lg transform -skew-x-3 lg:-translate-x-24 shadow-[6px_6px_0px_0px_rgba(255,255,255,0.05)]">
                 <div className="text-red-500 font-mono text-xs tracking-widest uppercase mb-4">// CHRONOLOGICAL OPERATIONAL TIMELINE</div>
-                <div className="space-y-3 font-black text-xs md:text-sm tracking-tight uppercase">
+                <div className="space-y-2.5 font-black text-xs md:text-sm tracking-tight uppercase">
                   {todaySchedule.map((slot, index) => (
-                    <div key={index} className="flex justify-between border-b border-neutral-800 pb-1.5">
-                      <span className={index % 2 === 1 ? "text-red-500 font-mono" : "text-neutral-400 font-mono"}>{slot.time}</span> 
+                    <div key={index} className="flex justify-between border-b border-neutral-800 pb-1.5 gap-4">
+                      <span className={index % 2 === 1 ? "text-red-500 font-mono shrink-0" : "text-neutral-400 font-mono shrink-0"}>{slot.time}</span> 
                       <span className="text-white text-right">{slot.task}</span>
                     </div>
                   ))}
@@ -351,7 +486,7 @@ export default function Dashboard() {
 
             {/* SCREEN 05: DEPLOY NEXT DAY GENERATOR PROTOCOL */}
             {activeScreen === 'deploy' && (
-              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-red-600 transform -skew-x-3 p-6 w-full max-w-lg shadow-[6px_6px_0px_0px_#dc2626]">
+              <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-red-600 transform -skew-x-3 p-6 w-full max-w-lg shadow-[6px_6px_0px_0px_#dc2626] mx-auto">
                 <div className="text-red-500 font-mono text-xs tracking-widest mb-1 uppercase">// COGNITIVE MAP GENERATOR</div>
                 <div className="text-[10px] text-neutral-400 font-mono mb-4 uppercase tracking-tighter">Mon-Fri timeline maps outside 09:00 AM - 05:00 PM college constraints</div>
                 
@@ -368,6 +503,9 @@ export default function Dashboard() {
                           const updated = [...tomorrowGoals];
                           updated[index] = e.target.value;
                           setTomorrowGoals(updated);
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('p5_tomorrow_goals', JSON.stringify(updated));
+                          }
                         }}
                         className="w-full bg-neutral-900 border-b-2 border-neutral-700 text-sm font-black p-2 uppercase tracking-wide focus:outline-none focus:border-red-600 transition-colors text-white"
                       />
@@ -379,7 +517,7 @@ export default function Dashboard() {
                     disabled={isLoadingAI}
                     className="w-full bg-red-600 text-black text-center font-black py-3 px-4 uppercase tracking-wider text-sm transform skew-x-6 border-2 border-black hover:bg-white hover:text-black transition-colors shadow-[4px_4px_0px_0px_#fff]"
                   >
-                    {isLoadingAI ? "PROCESSING STRATEGY CONSTRAINTS..." : "DEPLOY TOMORROW PROTOCOL"}
+                    {isLoadingAI ? "COMPILING HIGH-GRANULARITY SCHEDULE..." : "DEPLOY TOMORROW PROTOCOL"}
                   </button>
                 </form>
               </div>
@@ -388,8 +526,8 @@ export default function Dashboard() {
           </div>
 
           {/* LOWER TAILED DIALOGUE BLADES PANEL */}
-          {activeScreen !== 'initial' && (
-            <div className="relative w-full max-w-md mx-auto lg:mx-0 flex flex-col gap-3 mt-2 items-start transform lg:-translate-x-10 lg:translate-y-4 z-30">
+          {activeScreen !== 'initial' && activeScreen !== 'deploy' && (
+            <div className="relative w-full max-w-md mx-auto lg:mx-0 flex flex-col gap-3 mt-2 items-start transform lg:translate-x-20 lg:translate-y-4 z-30">
               
               {/* TOP BLADE */}
               <div className="relative w-full min-h-[3.5rem] transform origin-right">
