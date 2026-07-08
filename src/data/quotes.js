@@ -7,7 +7,7 @@ export const selfCareQuotes = [
     "If You're Not 10X Better Than Everyone Else, You're Not Trying Hard Enough.",
     "When You Change Don't Announce It. Just Bloom.",
     "If You Spend Too Much Time Thinking About A Thing, You'll Never Get It Done.",
-    "I don't give a fuck if it sounds unrealistic. I am achieving it thia year.",
+    "I don't give a fuck if it sounds unrealistic. I am achieving it this year.",
     "You can beat 99% of people if you can master the shame of REJECTION, the boredom of REPETITION, and pain of FEEDBACK",
     "I like being the best in the room. I want it more than everyone",
     "Don't call it a goal if you treat it like wish",

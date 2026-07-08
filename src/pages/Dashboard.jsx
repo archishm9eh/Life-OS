@@ -36,12 +36,43 @@ export default function Dashboard() {
   const currentDayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const todayWorkout = workoutRoutine.find((r) => r.day === currentDayName) || workoutRoutine[0];
 
-  // Sync active exercise countdown clock properties
+  // --- HIGH-PERFORMANCE WORKOUT TIMER STEPPING ENGINE ---
+  
+  // 1. Initial screen entry alignment loader
   useEffect(() => {
     if (activeScreen === 'workout' && todayWorkout?.exercises?.[currentExerciseIdx]) {
       setWorkoutSeconds(todayWorkout.exercises[currentExerciseIdx].timePerSet);
     }
-  }, [currentExerciseIdx, activeScreen]);
+  }, [activeScreen]);
+
+  // 2. Continuous 1-Second Decrement Clock
+  useEffect(() => {
+    if (activeScreen !== 'workout') return;
+
+    const timer = setInterval(() => {
+      if (workoutSeconds > 0) {
+        setWorkoutSeconds((prev) => prev - 1);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeScreen, workoutSeconds]);
+
+  // 3. Absolute "00:00" Row Progression Monitor
+  useEffect(() => {
+    if (activeScreen === 'workout' && workoutSeconds === 0) {
+      const nextIdx = currentExerciseIdx + 1;
+      
+      // Look up if a subsequent row item exists
+      if (todayWorkout?.exercises && nextIdx < todayWorkout.exercises.length) {
+        setCurrentExerciseIdx(nextIdx);
+        // Instantly look up and seed the exact countdown duration configuration for that new item
+        setWorkoutSeconds(todayWorkout.exercises[nextIdx].timePerSet);
+      }
+    }
+  }, [workoutSeconds, activeScreen, currentExerciseIdx, todayWorkout]);
+
+  // ------------------------------------------------------------
 
   // --- SAFE UNIFIED HYDRATION & DAY-TURNOVER HANDLING ENGINE ---
   useEffect(() => {
@@ -97,26 +128,6 @@ export default function Dashboard() {
       setIsLoaded(true);
     }
   }, []);
-
-  // Tactical Countdown Engine with Auto-Advance Capability
-  useEffect(() => {
-    if (activeScreen !== 'workout' || todayWorkout?.isVideoDay) return;
-
-    const timer = setInterval(() => {
-      setWorkoutSeconds((prev) => {
-        // When the timer is exactly running out to 0
-        if (prev <= 1) {
-          if (todayWorkout?.exercises && currentExerciseIdx < todayWorkout.exercises.length - 1) {
-            setCurrentExerciseIdx((prevIdx) => prevIdx + 1);
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [activeScreen, currentExerciseIdx, todayWorkout]);
 
   const formatTime = (totalSeconds) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -182,7 +193,6 @@ export default function Dashboard() {
         if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
           const rawText = data.candidates[0].content.parts[0].text;
           
-          // Isolate array bounds defensively to prevent raw text compilation errors
           const startIdx = rawText.indexOf('[');
           const endIdx = rawText.lastIndexOf(']');
           
@@ -411,28 +421,13 @@ export default function Dashboard() {
             {activeScreen === 'workout' && (
               <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-white transform -skew-x-6 p-6 w-full max-w-xl text-left shadow-[6px_6px_0px_0px_#fff] grid grid-cols-1 md:grid-cols-12 gap-6 bg-black/95 backdrop-blur-sm">
                 <div className="md:col-span-5 flex flex-col justify-center items-center border-b-2 md:border-b-0 md:border-r-2 border-neutral-800 pb-4 md:pb-0 md:pr-4">
-                  {todayWorkout.isVideoDay ? (
-                    <div className="w-full flex flex-col items-center">
-                      <div className="text-red-600 font-mono text-xs tracking-widest uppercase mb-1">// VIDEO ACTIVE</div>
-                      <video 
-                        src={todayWorkout.videoSrc} 
-                        controls 
-                        autoPlay 
-                        muted 
-                        playsInline 
-                        className="w-full rounded border border-neutral-800 my-2 max-h-[120px] object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="text-red-600 font-mono text-xs tracking-widest uppercase mb-1">// TIME REMAINING</div>
-                      <div className="font-mono text-4xl md:text-5xl font-black tracking-tighter text-white my-2 tabular-nums">{formatTime(workoutSeconds)}</div>
-                    </>
-                  )}
+                  <div className="text-red-600 font-mono text-xs tracking-widest uppercase mb-1">// TIME REMAINING</div>
+                  <div className="font-mono text-4xl md:text-5xl font-black tracking-tighter text-white my-2 tabular-nums">{formatTime(workoutSeconds)}</div>
+                  
                   <button 
                     onClick={() => {
-                      if (!todayWorkout.isVideoDay) {
-                        setWorkoutSeconds(todayWorkout.exercises[currentExerciseIdx]?.timePerSet || 0);
+                      if (todayWorkout?.exercises?.[currentExerciseIdx]) {
+                        setWorkoutSeconds(todayWorkout.exercises[currentExerciseIdx].timePerSet);
                       }
                     }} 
                     className="bg-red-600 text-black font-black text-xs px-4 py-2 uppercase tracking-wide transform skew-x-12 border border-black hover:bg-white transition-colors w-full mt-2"
@@ -451,7 +446,10 @@ export default function Dashboard() {
                         return (
                           <li 
                             key={ex.id} 
-                            onClick={() => setCurrentExerciseIdx(idx)}
+                            onClick={() => {
+                              setCurrentExerciseIdx(idx);
+                              setWorkoutSeconds(ex.timePerSet);
+                            }}
                             className={`flex justify-between items-center p-2 border-l-2 cursor-pointer transition-all ${
                               isActive 
                                 ? 'bg-neutral-900 border-white text-white font-black shadow-[0_0_20px_rgba(255,255,255,0.3)] drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]' 
