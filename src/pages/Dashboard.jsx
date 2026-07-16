@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { workoutRoutine } from '../data/workoutRoutine';
 
+const BACKEND_URL = "http://127.0.0.1:8000";
+
 export default function Dashboard() {
   const [activeScreen, setActiveScreen] = useState('goals');
   const [workoutSeconds, setWorkoutSeconds] = useState(900); 
@@ -9,14 +11,13 @@ export default function Dashboard() {
   // --- CORE DATA & SYSTEM STATES ---
   const [tomorrowGoals, setTomorrowGoals] = useState(['', '', '']);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
-  const [geminiApiKey, setGeminiApiKey] = useState('');
   const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
 
-  // Fallback structural defaults for initial server paint / unhydrated states
+  // Fallback defaults matching the expected backend schema structure
   const [todayGoals, setTodayGoals] = useState([
-    "Master React Complex State",
-    "Push Clean Core Architecture to GitHub",
-    "Deploy Initial Dashboard Matrix"
+    { id: "g1", text: "Master React Complex State", completed: false },
+    { id: "g2", text: "Push Clean Core Architecture to GitHub", completed: false },
+    { id: "g3", text: "Deploy Initial Dashboard Matrix", completed: false }
   ]);
 
   const [todaySchedule, setTodaySchedule] = useState([
@@ -24,7 +25,7 @@ export default function Dashboard() {
     { time: "07:30 AM", task: "Bath, Grooming & Getting Ready" },
     { time: "08:15 AM", task: "Breakfast & College Commute" },
     { time: "09:00 AM", task: "College Operations Window" },
-    { time: "01:00 PM", task: "Lunch Break Protocol" },
+    { time: "12:30 PM", task: "Lunch Break Protocol" },
     { time: "05:00 PM", task: "Return Commute & Decompress" },
     { time: "06:00 PM", task: "Family Connection & Tea" },
     { time: "07:00 PM", task: "Target Goal Study & Homework" },
@@ -74,60 +75,72 @@ export default function Dashboard() {
 
   // ------------------------------------------------------------
 
-  // --- SAFE UNIFIED HYDRATION & DAY-TURNOVER HANDLING ENGINE ---
+  // --- INITIAL DATABASE HYDRATION ON MOUNT ---
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    const fetchInitialData = async () => {
+      // 1. Fetch Today's Goals
       try {
-        const savedKey = localStorage.getItem('p5_gemini_api_key');
-        if (savedKey) setGeminiApiKey(savedKey);
-
-        // Track local calendar dates to avoid UTC timezone cutoff errors
-        const todayStr = new Date().toLocaleDateString('en-CA'); 
-        const savedDate = localStorage.getItem('p5_dashboard_last_date');
-
-        // Execute turnover sequence immediately prior to populating any states
-        if (savedDate && savedDate !== todayStr) {
-          const pendingGoals = localStorage.getItem('p5_tomorrow_goals');
-          const pendingSchedule = localStorage.getItem('p5_tomorrow_schedule');
-
-          if (pendingGoals && pendingGoals !== JSON.stringify(['', '', ''])) {
-            localStorage.setItem('p5_today_goals', pendingGoals);
-            localStorage.setItem('p5_tomorrow_goals', JSON.stringify(['', '', '']));
-          }
-          if (pendingSchedule) {
-            localStorage.setItem('p5_today_schedule', pendingSchedule);
-            localStorage.removeItem('p5_tomorrow_schedule');
+        const todayResponse = await fetch(`${BACKEND_URL}/api/goals?type=today`);
+        if (todayResponse.ok) {
+          const data = await todayResponse.json();
+          if (data && data.goals && data.goals.length > 0) {
+            setTodayGoals(data.goals);
           }
         }
-
-        // Pull processed records directly into application view frames
-        const finalTodayGoals = localStorage.getItem('p5_today_goals');
-        const finalTodaySchedule = localStorage.getItem('p5_today_schedule');
-        const finalTomorrowGoals = localStorage.getItem('p5_tomorrow_goals');
-
-        if (finalTodayGoals) {
-          setTodayGoals(JSON.parse(finalTodayGoals));
-        } else {
-          localStorage.setItem('p5_today_goals', JSON.stringify(todayGoals));
-        }
-
-        if (finalTodaySchedule) {
-          setTodaySchedule(JSON.parse(finalTodaySchedule));
-        } else {
-          localStorage.setItem('p5_today_schedule', JSON.stringify(todaySchedule));
-        }
-
-        if (finalTomorrowGoals) {
-          setTomorrowGoals(JSON.parse(finalTomorrowGoals));
-        }
-
-        localStorage.setItem('p5_dashboard_last_date', todayStr);
-      } catch (e) {
-        console.error("System storage metrics initialization error:", e);
+      } catch (err) {
+        console.warn("Could not connect to FastAPI server for Today's Goals. Loading fallback states...", err);
       }
-      setIsLoaded(true);
-    }
+
+      // 2. Fetch Tomorrow's Goals (to pre-fill inputs if they already exist)
+      try {
+        const tomorrowResponse = await fetch(`${BACKEND_URL}/api/goals?type=tomorrow`);
+        if (tomorrowResponse.ok) {
+          const data = await tomorrowResponse.json();
+          if (data && data.goals && data.goals.length > 0) {
+            const loadedGoals = data.goals.map(g => typeof g === 'object' ? g.text : g);
+            const filled = [...loadedGoals, '', '', ''].slice(0, 3);
+            setTomorrowGoals(filled);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not connect to FastAPI server for Tomorrow's Goals.", err);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    fetchInitialData();
   }, []);
+
+  // --- INTERACTIVE GOAL COMPLETION SYNC PROTOCOL ---
+  const handleToggleGoal = async (goalId) => {
+    const updatedGoals = todayGoals.map(goal => {
+      if (goal.id === goalId) {
+        return { ...goal, completed: !goal.completed };
+      }
+      return goal;
+    });
+
+    // Optimistically update UI
+    setTodayGoals(updatedGoals);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/goals?type=today`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goals: updatedGoals })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.goals) {
+          setTodayGoals(data.goals);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to sync updated goal completion to FastAPI database:", err);
+    }
+  };
 
   const formatTime = (totalSeconds) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -135,9 +148,10 @@ export default function Dashboard() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // --- GEMINI INTELLIGENT ROUTING & PROTOCOL ENGINE ---
+  // --- SECURE BACKEND-ROUTED AI GENERATION PROTOCOL ---
   const handleDeployNextDay = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Fixed Bug 1: Prevent page reload from breaking state
+    
     if (tomorrowGoals.some(g => g.trim() === '')) {
       alert("INPUT REQUIRED: ENTER ALL THREE TARGET OBJECTIVES.");
       return;
@@ -152,72 +166,95 @@ export default function Dashboard() {
 
     const systemConstraints = `
       - Tomorrow is ${tomorrowDayName}.
-      - Mon to Fri constraints: College from 9:00 AM to 5:00 PM with a Lunch Break between 1:00 PM and 2:00 PM. Include travel time/commute buffers before 9 AM and after 5 PM.
+      - Mon to Fri constraints: College from 9:00 AM to 5:00 PM with a Lunch Break between 12:30 PM and 1:30 PM. Include travel time/commute buffers before 9 AM and after 5 PM.
       - Sat and Sun constraints: Off from college. Completely open schedule.
       - Core Targets to schedule: 1. ${tomorrowGoals[0]} | 2. ${tomorrowGoals[1]} | 3. ${tomorrowGoals[2]}.
     `;
 
     let generatedSchedule = [];
 
-    if (geminiApiKey.trim() !== '') {
-      try {
-        const prompt = `You are a meticulous, high-performance tactical routine planner. Generate a highly detailed, realistic, and granular 24-hour chronological schedule array for tomorrow (${tomorrowDayName}).
-        
-        Context and parameters: ${systemConstraints}
-        
-        CRITICAL RULES FOR REALISTIC SCHEDULING:
-        1. Do NOT just list broad blocks. You must generate a highly comprehensive schedule containing between 8 to 12 chronological steps.
-        2. Account for human routines explicitly:
-           - Include a Morning Routine block (e.g., "07:00 AM" or "07:30 AM") specifically mentioning bathing, personal hygiene, breakfast, and getting ready.
-           - Include a Commute/Travel step to and from college.
-           - Include a post-college Decompression / Family time block (e.g., "05:40 PM" or "06:00 PM") specifically mentioning talking with family, dinner, or relaxing.
-           - Allocate distinct, dedicated time blocks for Self-Study, Homework, or working specifically on the 3 core objectives provided.
-           - Include a dedicated night fitness loop/workout step.
-           - End with a clear wind-down / sleep preparation step.
-        
-        Return ONLY a clean, valid JSON array of objects following exactly this schema format with absolutely no markdown wrapping, no \`\`\`json tags, and no conversational filler text:
-        [
-          {"time": "07:00 AM", "task": "Wake Up & Hydration Matrix"},
-          {"time": "07:20 AM", "task": "Bath, Personal Hygiene & Grooming"},
-          {"time": "08:00 AM", "task": "Breakfast & College Commute Route"},
-          ...
-        ]`;
+    try {
+      const prompt = `You are a meticulous, high-performance tactical routine planner. Generate a highly detailed, realistic, and granular 24-hour chronological schedule array for tomorrow (${tomorrowDayName}).
+      
+      Context and parameters: ${systemConstraints}
+      
+      CRITICAL RULES FOR REALISTIC SCHEDULING:
+      1. Do NOT just list broad blocks. You must generate a highly comprehensive schedule containing between 8 to 12 chronological steps.
+      2. Account for human routines explicitly:
+         - Include a Morning Routine block (e.g., "07:00 AM" or "07:30 AM") specifically mentioning bathing, personal hygiene, breakfast, and getting ready.
+         - Include a Commute/Travel step to and from college.
+         - Include a post-college Decompression / Family time block (e.g., "05:40 PM" or "06:00 PM") specifically mentioning talking with family, dinner, or relaxing.
+         - Allocate distinct, dedicated time blocks for Self-Study, Homework, or working specifically on the 3 core objectives provided.
+         - Include a dedicated night fitness loop/workout step.
+         - End with a clear wind-down / sleep preparation step.
+      
+      Return ONLY a clean, valid JSON array of objects following exactly this schema format with absolutely no markdown wrapping, no \`\`\`json tags, and no conversational filler text:
+      [
+        {"time": "07:00 AM", "task": "Wake Up & Hydration Matrix"},
+        {"time": "07:20 AM", "task": "Bath, Personal Hygiene & Grooming"},
+        {"time": "08:00 AM", "task": "Breakfast & College Commute Route"},
+        ...
+      ]`;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
+      // Fixed Bug 2: Securely call backend AI Chat Proxy API instead of direct Google endpoints
+      const response = await fetch(`${BACKEND_URL}/api/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt })
+      });
 
-        const data = await response.json();
-        if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-          const rawText = data.candidates[0].content.parts[0].text;
-          
-          const startIdx = rawText.indexOf('[');
-          const endIdx = rawText.lastIndexOf(']');
-          
-          if (startIdx !== -1 && endIdx !== -1) {
-            const cleanJson = rawText.substring(startIdx, endIdx + 1).trim();
-            generatedSchedule = JSON.parse(cleanJson);
-          } else {
-            throw new Error("JSON formatting boundaries absent");
-          }
-        } else {
-          throw new Error("Invalid API payload framework");
-        }
-      } catch (err) {
-        console.warn("AI layout failed or format mismatched. Dropping to local smart fallback...", err);
-        generatedSchedule = runLocalFallbackScheduler(isWeekend);
+      if (!response.ok) {
+        throw new Error("Backend server error returned");
       }
-    } else {
+
+      const data = await response.json();
+      if (data && data.response) {
+        const rawText = data.response;
+        const startIdx = rawText.indexOf('[');
+        const endIdx = rawText.lastIndexOf(']');
+        
+        if (startIdx !== -1 && endIdx !== -1) {
+          const cleanJson = rawText.substring(startIdx, endIdx + 1).trim();
+          generatedSchedule = JSON.parse(cleanJson);
+        } else {
+          throw new Error("JSON formatting boundaries absent");
+        }
+      } else {
+        throw new Error("Invalid API payload framework");
+      }
+    } catch (err) {
+      console.warn("AI mapping failed. Executing fallback routing generator...", err);
       generatedSchedule = runLocalFallbackScheduler(isWeekend);
     }
 
-    localStorage.setItem('p5_tomorrow_goals', JSON.stringify(tomorrowGoals));
-    localStorage.setItem('p5_tomorrow_schedule', JSON.stringify(generatedSchedule));
+    // Process tomorrow's goals into database objects
+    const newlyLockedGoals = tomorrowGoals.map((goalText, index) => ({
+      id: `g-${Date.now()}-${index}`,
+      text: goalText,
+      completed: false
+    }));
 
+    // Post tomorrow's compiled goals directly to the backend database with type=tomorrow parameter
+    try {
+      const dbResponse = await fetch(`${BACKEND_URL}/api/goals?type=tomorrow`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goals: newlyLockedGoals })
+      });
+
+      if (!dbResponse.ok) {
+        throw new Error("Failed to save tomorrow's goals to database");
+      }
+    } catch (dbErr) {
+      console.error("Could not sync tomorrow's goals to database:", dbErr);
+    }
+
+    // Update schedule state, flush local tomorrow's input matrix, and exit loading
+    setTodaySchedule(generatedSchedule);
+    setTomorrowGoals(['', '', '']);
     setIsLoadingAI(false);
-    alert(`STRATEGY DEPLOYED: High-granularity protocols locked for ${tomorrowDayName}. They will load automatically upon next-day turnover!`);
+
+    alert(`STRATEGY DEPLOYED: High-granularity protocols locked and synchronized with backend database for tomorrow!`);
     setActiveScreen('goals');
   };
 
@@ -228,7 +265,7 @@ export default function Dashboard() {
         { time: "07:25 AM", task: "Bath, Personal Hygiene & Get Ready" },
         { time: "08:15 AM", task: "Breakfast & College Transit Buffer" },
         { time: "09:00 AM", task: "COLLEGE OPERATIONS WINDOW // START" },
-        { time: "01:00 PM", task: "System Fuel // Lunch Break Protocol" },
+        { time: "12:30 PM", task: "System Fuel // Lunch Break Protocol" },
         { time: "05:00 PM", task: "College Termination & Return Commute" },
         { time: "05:45 PM", task: "Decompress & Quality Time with Family" },
         { time: "06:45 PM", task: `CORE STUDY // Homework & Target: ${tomorrowGoals[0].substring(0, 30)}` },
@@ -368,23 +405,6 @@ export default function Dashboard() {
             </button>
           ))}
 
-          {/* Secure API Key Entry Portal */}
-          <div className="mt-4 transform -skew-x-12 max-w-xs bg-neutral-950 p-2 border border-neutral-800 rounded">
-            <label className="block text-[9px] font-mono tracking-widest text-neutral-500 mb-1">// API ENGINE ENCRYPTION KEY</label>
-            <input 
-              type="password" 
-              placeholder="Paste Gemini Key here..." 
-              value={geminiApiKey}
-              onChange={(e) => {
-                setGeminiApiKey(e.target.value);
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('p5_gemini_api_key', e.target.value);
-                }
-              }}
-              className="w-full bg-black text-xs border border-neutral-700 p-1 text-red-500 font-mono focus:outline-none"
-            />
-          </div>
-
         </div>
 
         {/* WORKSPACE OPERATIONS DISPLAY AREA */}
@@ -397,9 +417,22 @@ export default function Dashboard() {
               <div style={{ animation: 'p5-view-entrance 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }} className="bg-black border-2 border-red-600 transform -skew-x-6 p-6 w-full max-w-md shadow-[6px_6px_0px_0px_rgba(220,38,38,0.3)] bg-black/95 backdrop-blur-sm">
                 <div className="text-red-500 font-mono text-xs tracking-widest mb-3 uppercase">// CURRENT ACTIVE OBJECTIVES</div>
                 <ul className="space-y-3 font-black text-base uppercase tracking-tight">
-                  {todayGoals.map((goal, idx) => (
-                    <li key={idx} className="flex items-center gap-3 bg-neutral-900/90 p-2 border-l-4 border-red-600">✕ {goal}</li>
-                  ))}
+                  {todayGoals.map((goal, idx) => {
+                    const isCompleted = goal?.completed ?? false;
+                    const textContent = goal?.text ?? goal;
+                    const goalId = goal?.id ?? idx;
+                    return (
+                      <li 
+                        key={goalId} 
+                        onClick={() => handleToggleGoal(goalId)}
+                        className={`flex items-center gap-3 bg-neutral-900/90 p-2 border-l-4 cursor-pointer select-none transition-colors duration-150 ${
+                          isCompleted ? 'border-green-600 line-through text-neutral-500' : 'border-red-600 hover:bg-neutral-800'
+                        }`}
+                      >
+                        {isCompleted ? '✓' : '✕'} {textContent}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -501,9 +534,6 @@ export default function Dashboard() {
                           const updated = [...tomorrowGoals];
                           updated[index] = e.target.value;
                           setTomorrowGoals(updated);
-                          if (typeof window !== 'undefined') {
-                            localStorage.setItem('p5_tomorrow_goals', JSON.stringify(updated));
-                          }
                         }}
                         className="w-full bg-neutral-900 border-b-2 border-neutral-700 text-sm font-black p-2 uppercase tracking-wide focus:outline-none focus:border-red-600 transition-colors text-white"
                       />
